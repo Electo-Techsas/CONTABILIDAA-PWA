@@ -44,6 +44,24 @@ function fromDbTransaction(row) {
   };
 }
 
+function toReadableError(error) {
+  const message = error?.message || 'No se pudo completar la operacion.';
+
+  if (message.includes('row-level security')) {
+    return new Error('Supabase bloqueo el guardado por politicas RLS. Revisa que la tabla transactions tenga las policies para select, insert, update y delete.');
+  }
+
+  if (message.includes('Could not find') || message.includes('schema cache')) {
+    return new Error('La tabla transactions no coincide con las columnas esperadas. Revisa que existan user_id, amount, type, category, date, description, payment_method e import_hash.');
+  }
+
+  if (message.includes('violates foreign key constraint')) {
+    return new Error('El usuario autenticado no coincide con user_id. Cierra sesion, vuelve a entrar e intenta de nuevo.');
+  }
+
+  return new Error(message);
+}
+
 export function useTransactions(uid) {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -101,7 +119,7 @@ export function useTransactions(uid) {
   async function createTransaction(input) {
     if (!hasSupabaseConfig) return;
     const { error } = await supabase.from('transactions').insert(toDbTransaction(input, uid));
-    if (error) throw error;
+    if (error) throw toReadableError(error);
     await refreshTransactions();
   }
 
@@ -112,14 +130,14 @@ export function useTransactions(uid) {
       .update(toDbTransaction(input, uid))
       .eq('id', id)
       .eq('user_id', uid);
-    if (error) throw error;
+    if (error) throw toReadableError(error);
     await refreshTransactions();
   }
 
   async function removeTransaction(id) {
     if (!hasSupabaseConfig) return;
     const { error } = await supabase.from('transactions').delete().eq('id', id).eq('user_id', uid);
-    if (error) throw error;
+    if (error) throw toReadableError(error);
     await refreshTransactions();
   }
 
@@ -134,7 +152,7 @@ export function useTransactions(uid) {
       .eq('user_id', uid)
       .in('import_hash', hashes);
 
-    if (existingError) throw existingError;
+    if (existingError) throw toReadableError(existingError);
 
     const existingHashes = new Set((existing || []).map((item) => item.import_hash));
     const newItems = items
@@ -143,7 +161,7 @@ export function useTransactions(uid) {
 
     if (newItems.length) {
       const { error } = await supabase.from('transactions').insert(newItems);
-      if (error) throw error;
+      if (error) throw toReadableError(error);
     }
 
     await refreshTransactions();

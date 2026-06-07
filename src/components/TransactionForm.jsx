@@ -6,15 +6,23 @@ export default function TransactionForm({ transaction, categories, onSubmit, onC
   const [values, setValues] = useState(transaction || emptyTransaction);
   const [customCategory, setCustomCategory] = useState('');
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const update = (key, value) => setValues((current) => ({ ...current, [key]: value }));
 
   const submit = async (event) => {
     event.preventDefault();
-    setSaving(true);
-    const category = customCategory.trim() || values.category;
-    await onSubmit({ ...values, category });
-    setSaving(false);
+    setError('');
+
+    try {
+      setSaving(true);
+      const category = customCategory.trim() || values.category;
+      await onSubmit({ ...values, category });
+    } catch (submitError) {
+      setError(submitError.message || 'No se pudo guardar la transaccion.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -29,6 +37,12 @@ export default function TransactionForm({ transaction, categories, onSubmit, onC
             <X size={18} />
           </button>
         </div>
+
+        {error && (
+          <div className="mb-4 rounded-2xl border border-negative/20 bg-negative/10 p-3 text-sm font-medium text-negative">
+            {error}
+          </div>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Monto">
