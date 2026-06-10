@@ -5,7 +5,8 @@
 :root {
   color: #14201d;
   background: #f7faf9;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 html {
@@ -15,6 +16,7 @@ html {
 body {
   min-height: 100vh;
   margin: 0;
+  overflow-x: hidden;
 }
 
 button,
@@ -29,11 +31,171 @@ textarea {
 }
 
 @layer components {
+
   .input {
-    @apply h-11 w-full rounded-2xl border border-black/10 bg-white px-3 text-sm text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10;
+    @apply h-11 w-full rounded-2xl px-3 text-sm outline-none transition-all;
+
+    background: rgba(255,255,255,.35);
+
+    backdrop-filter:
+      blur(20px)
+      saturate(180%);
+
+    -webkit-backdrop-filter:
+      blur(20px)
+      saturate(180%);
+
+    border: 1px solid rgba(255,255,255,.25);
+
+    color: #14201d;
+  }
+
+  .dark .input {
+    background: rgba(15,23,42,.45);
+    color: #f8fafc;
+    border: 1px solid rgba(255,255,255,.08);
   }
 
   textarea.input {
     @apply h-24 py-3;
   }
+
+  .liquid-card {
+    position: relative;
+    overflow: hidden;
+
+    background: rgba(255,255,255,.32);
+
+    backdrop-filter:
+      blur(28px)
+      saturate(180%);
+
+    -webkit-backdrop-filter:
+      blur(28px)
+      saturate(180%);
+
+    border: 1px solid rgba(255,255,255,.25);
+
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.35),
+      inset 0 -1px 0 rgba(255,255,255,.08),
+      0 12px 40px rgba(15,23,42,.08);
+
+    transition:
+      transform .3s ease,
+      box-shadow .3s ease;
+  }
+
+  .dark .liquid-card {
+    background: rgba(15,23,42,.42);
+
+    border: 1px solid rgba(255,255,255,.08);
+
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.08),
+      0 12px 40px rgba(0,0,0,.35);
+  }
+
+  .liquid-card::before {
+    content: '';
+
+    position: absolute;
+
+    left: 0;
+    right: 0;
+    top: 0;
+
+    height: 40%;
+
+    background:
+      linear-gradient(
+        to bottom,
+        rgba(255,255,255,.35),
+        transparent
+      );
+
+    pointer-events: none;
+  }
+
+  .liquid-card:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.35),
+      0 18px 45px rgba(15,23,42,.12);
+  }
+
+  .liquid-button {
+    background: rgba(255,255,255,.25);
+
+    backdrop-filter: blur(18px);
+
+    border: 1px solid rgba(255,255,255,.25);
+
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.25),
+      0 6px 20px rgba(0,0,0,.08);
+
+    transition: all .25s ease;
+  }
+
+  .liquid-button:hover {
+    transform: translateY(-1px);
+  }
+
+  .liquid-button:active {
+    transform: scale(.96);
+  }
+
+  .liquid-navbar {
+    background: rgba(255,255,255,.45);
+
+    backdrop-filter:
+      blur(30px)
+      saturate(180%);
+
+    -webkit-backdrop-filter:
+      blur(30px)
+      saturate(180%);
+
+    border-top: 1px solid rgba(255,255,255,.25);
+  }
+
+  .dark .liquid-navbar {
+    background: rgba(15,23,42,.65);
+  }
+
+  .liquid-sidebar {
+    background: rgba(255,255,255,.35);
+
+    backdrop-filter:
+      blur(32px)
+      saturate(180%);
+
+    -webkit-backdrop-filter:
+      blur(32px)
+      saturate(180%);
+  }
+
+  .dark .liquid-sidebar {
+    background: rgba(15,23,42,.55);
+  }
+}
+
+@keyframes floatBlob {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-20px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.float-blob {
+  animation: floatBlob 12s ease-in-out infinite;
 }

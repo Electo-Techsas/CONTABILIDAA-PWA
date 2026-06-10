@@ -9,7 +9,8 @@ function cleanTransaction(input) {
     category: input.category,
     date: input.date,
     description: input.description?.trim() ?? '',
-    paymentMethod: input.paymentMethod || 'Otro'
+    // Si por alguna razón extraña llega vacío, fuerza Efectivo en lugar de Otro
+    paymentMethod: input.paymentMethod || 'Efectivo' 
   };
 }
 
@@ -37,7 +38,8 @@ function fromDbTransaction(row) {
     category: row.category,
     date: row.date,
     description: row.description || '',
-    paymentMethod: row.payment_method || 'Otro',
+    // Forzamos Efectivo como predeterminado en la lectura de datos viejos
+    paymentMethod: row.payment_method || 'Efectivo',
     importHash: row.import_hash,
     createdAt: row.created_at,
     updatedAt: row.updated_at
@@ -141,6 +143,13 @@ export function useTransactions(uid) {
     await refreshTransactions();
   }
 
+  async function clearAllTransactions() {
+    if (!hasSupabaseConfig || !uid) return;
+    const { error } = await supabase.from('transactions').delete().eq('user_id', uid);
+    if (error) throw toReadableError(error);
+    await refreshTransactions();
+  }
+
   async function importTransactions(items) {
     if (!hasSupabaseConfig) return { imported: 0, skipped: 0 };
     if (!items.length) return { imported: 0, skipped: 0 };
@@ -177,6 +186,7 @@ export function useTransactions(uid) {
     createTransaction,
     updateTransaction,
     removeTransaction,
+    clearAllTransactions,
     importTransactions,
     refreshTransactions
   };

@@ -17,30 +17,33 @@ export default function TransactionHistory({
   const updateFilter = (key, value) => setFilters((current) => ({ ...current, [key]: value }));
 
   return (
-    <section id="history" className="rounded-3xl border border-black/10 bg-white p-4 shadow-soft">
+    <section
+  id="history"
+  className="liquid-card rounded-[28px] p-5"
+>
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h2 className="text-base font-semibold text-ink">Historial de transacciones</h2>
           <p className="text-sm text-muted">{transactions.length} registros visibles</p>
         </div>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          <select value={filters.type} onChange={(event) => updateFilter('type', event.target.value)} className="input">
+          <select value={filters.type} onChange={(event) => updateFilter('type', event.target.value)} className="input shadow-lg">
             <option>Todos</option>
             <option>Ingreso</option>
             <option>Egreso</option>
           </select>
-          <select value={filters.category} onChange={(event) => updateFilter('category', event.target.value)} className="input">
+          <select value={filters.category} onChange={(event) => updateFilter('category', event.target.value)} className="input shadow-lg">
             <option>Todas</option>
             {categories.map((category) => <option key={category}>{category}</option>)}
           </select>
-          <input type="date" value={filters.from} onChange={(event) => updateFilter('from', event.target.value)} className="input" />
-          <input type="date" value={filters.to} onChange={(event) => updateFilter('to', event.target.value)} className="input" />
+          <input type="date" value={filters.from} onChange={(event) => updateFilter('from', event.target.value)} className="input shadow-lg" />
+          <input type="date" value={filters.to} onChange={(event) => updateFilter('to', event.target.value)} className="input shadow-lg" />
         </div>
       </div>
 
       <div className="hidden overflow-x-auto lg:block">
-        <table className="w-full min-w-[860px] text-left text-sm">
-          <thead className="text-xs uppercase text-muted">
+        <table className="w-full min-w-[860px] text-left text-sm text-slate-700 dark:text-slate-300">
+          <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
             <tr className="border-b border-black/10">
               <th className="py-3 pr-3">Fecha</th>
               <th className="py-3 pr-3">Tipo</th>
@@ -53,14 +56,25 @@ export default function TransactionHistory({
           </thead>
           <tbody>
             {transactions.map((item) => (
-              <tr key={item.id} className="border-b border-black/5 last:border-0">
-                <td className="py-3 pr-3 text-muted">{item.date}</td>
+              <tr
+  key={item.id}
+  className="
+    border-b border-white/10
+    hover:bg-white/5
+    transition-all
+    duration-300
+    last:border-0
+  "
+>
+                <td className="py-3 pr-3 text-slate-600 dark:text-slate-200">{item.date}</td>
                 <td className="py-3 pr-3">
                   <TypeBadge type={item.type} />
                 </td>
                 <td className="py-3 pr-3 font-medium text-ink">{item.category}</td>
-                <td className="max-w-xs py-3 pr-3 text-muted">{item.description}</td>
-                <td className="py-3 pr-3 text-muted">{item.paymentMethod}</td>
+                <td className="max-w-xs py-3 pr-3 text-slate-700 dark:text-slate-100">{item.description}</td>
+                <td className="py-3 pr-3 text-slate-600 dark:text-slate-200">
+  {item.paymentMethod}
+</td>
                 <td className={`py-3 pr-3 text-right font-semibold ${item.type === 'Ingreso' ? 'text-positive' : 'text-negative'}`}>
                   {money.format(item.amount)}
                 </td>
@@ -78,15 +92,18 @@ export default function TransactionHistory({
 
       <div className="space-y-3 lg:hidden">
         {transactions.map((item) => (
-          <article key={item.id} className="rounded-2xl border border-black/10 p-3">
+          <article
+  key={item.id}
+  className="liquid-card rounded-2xl p-4"
+>
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-ink">{item.category}</p>
-                <p className="text-xs text-muted">{item.date} · {item.paymentMethod}</p>
+                <p className="text-xs text-slate-600 dark:text-slate-200">{item.date} · {item.paymentMethod}</p>
               </div>
               <TypeBadge type={item.type} />
             </div>
-            <p className="mb-3 text-sm text-muted">{item.description || 'Sin descripcion'}</p>
+            <p className="mb-3 text-sm text-slate-700 dark:text-slate-100">{item.description || 'Sin descripcion'}</p>
             <div className="flex items-center justify-between">
               <p className={`text-base font-semibold ${item.type === 'Ingreso' ? 'text-positive' : 'text-negative'}`}>
                 {money.format(item.amount)}
@@ -101,7 +118,17 @@ export default function TransactionHistory({
       </div>
 
       {!transactions.length && (
-        <div className="grid min-h-40 place-items-center rounded-2xl bg-black/[0.03] text-sm text-muted">
+        <div
+  className="
+    liquid-card
+    rounded-2xl
+    min-h-40
+    grid
+    place-items-center
+    text-sm
+    text-slate-500
+  "
+>
           No hay transacciones con los filtros actuales.
         </div>
       )}
@@ -111,8 +138,26 @@ export default function TransactionHistory({
 
 function TypeBadge({ type }) {
   const isIncome = type === 'Ingreso';
+
   return (
-    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${isIncome ? 'bg-positive/10 text-positive' : 'bg-negative/10 text-negative'}`}>
+    <span
+      className={`
+        inline-flex
+        items-center
+        rounded-full
+        px-3
+        py-1
+        text-xs
+        font-semibold
+        backdrop-blur-xl
+        border
+        ${
+          isIncome
+            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
+            : 'bg-orange-500/10 border-orange-500/20 text-orange-500'
+        }
+      `}
+    >
       {type}
     </span>
   );
@@ -124,7 +169,22 @@ function IconButton({ label, icon: Icon, onClick, danger }) {
       type="button"
       title={label}
       onClick={onClick}
-      className={`grid h-10 w-10 place-items-center rounded-full border border-black/10 ${danger ? 'text-negative' : 'text-muted'}`}
+      className={`
+        liquid-button
+        grid
+        h-10
+        w-10
+        place-items-center
+        rounded-xl
+        transition-all
+        duration-300
+        hover:scale-105
+        ${
+          danger
+            ? 'text-orange-500'
+            : 'text-slate-600 dark:text-slate-300'
+        }
+      `}
     >
       <Icon size={17} />
     </button>
