@@ -9,13 +9,40 @@ import TransactionHistory from './components/TransactionHistory';
 import { useAuth } from './hooks/useAuth';
 import { useTransactions } from './hooks/useTransactions';
 import Settings from './components/Settings';
+import WalletImporter from './components/WalletImporter';
 import { DEFAULT_CATEGORIES } from './lib/schema';
 import { hasSupabaseConfig } from './lib/supabase';
+import { DEFAULT_ALERT_SETTINGS } from './lib/monthlyAccounting';
+
+const DEFAULT_CATEGORY_SETTINGS = {
+  custom: [],
+  hidden: []
+};
 
 export default function App() {
   const { user, loading: authLoading, signIn, signOut } = useAuth();
   const [editing, setEditing] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [alertSettings, setAlertSettings] = useState(() => {
+    if (typeof window === 'undefined') return DEFAULT_ALERT_SETTINGS;
+
+    try {
+      const saved = window.localStorage.getItem('finance-alert-settings');
+      return saved ? { ...DEFAULT_ALERT_SETTINGS, ...JSON.parse(saved) } : DEFAULT_ALERT_SETTINGS;
+    } catch {
+      return DEFAULT_ALERT_SETTINGS;
+    }
+  });
+  const [categorySettings, setCategorySettings] = useState(() => {
+    if (typeof window === 'undefined') return DEFAULT_CATEGORY_SETTINGS;
+
+    try {
+      const saved = window.localStorage.getItem('finance-category-settings');
+      return saved ? { ...DEFAULT_CATEGORY_SETTINGS, ...JSON.parse(saved) } : DEFAULT_CATEGORY_SETTINGS;
+    } catch {
+      return DEFAULT_CATEGORY_SETTINGS;
+    }
+  });
   
   const [activeTab, setActiveTab] = useState('dashboard');
 
@@ -32,8 +59,53 @@ export default function App() {
   } = useTransactions(user?.id);
 
   const categories = useMemo(() => {
-    return Array.from(new Set([...DEFAULT_CATEGORIES, ...transactions.map((item) => item.category)])).sort();
-  }, [transactions]);
+    const hidden = new Set(categorySettings.hidden);
+    return Array.from(
+      new Set([
+        ...DEFAULT_CATEGORIES,
+        ...categorySettings.custom,
+        ...transactions.map((item) => item.category)
+      ])
+    )
+      .filter((category) => category && !hidden.has(category))
+      .sort();
+  }, [categorySettings, transactions]);
+
+  const updateAlertSettings = (nextSettings) => {
+    setAlertSettings(nextSettings);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('finance-alert-settings', JSON.stringify(nextSettings));
+    }
+  };
+
+  const updateCategorySettings = (nextSettings) => {
+    setCategorySettings(nextSettings);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('finance-category-settings', JSON.stringify(nextSettings));
+    }
+  };
+
+  const addCategory = (categoryName) => {
+    const category = categoryName.trim();
+    if (!category) return;
+
+    const custom = new Set(categorySettings.custom);
+    const hidden = new Set(categorySettings.hidden);
+    custom.add(category);
+    hidden.delete(category);
+
+    updateCategorySettings({
+      custom: Array.from(custom).sort(),
+      hidden: Array.from(hidden).sort()
+    });
+  };
+
+  const removeCategory = (categoryName) => {
+    updateCategorySettings({
+      custom: categorySettings.custom.filter((category) => category !== categoryName),
+      hidden: Array.from(new Set([...categorySettings.hidden, categoryName])).sort()
+    });
+  };
 
   if (!hasSupabaseConfig) {
     return <MissingSupabaseConfig />;
@@ -106,59 +178,66 @@ export default function App() {
       </header>
 
       <main className="space-y-5 pb-24 lg:pb-8 animate-fade-in">
-        
-        {activeTab === 'dashboard' && (
-          <Dashboard 
-            transactions={filteredTransactions} 
-            allTransactions={transactions} 
-            loading={loading} 
-          />
-        )}
+  
+  {activeTab === 'dashboard' && (
+    <Dashboard 
+      transactions={filteredTransactions} 
+      allTransactions={transactions} 
+      loading={loading} 
+      alertSettings={alertSettings}
+    />
+  )}
 
-        {activeTab === 'excel' && (
-          <ExcelTools
-            transactions={filteredTransactions}
-            onImport={importTransactions}
-          />
-        )}
+  {activeTab === 'excel' && (
+    <>
+      <WalletImporter onImport={createTransaction} />
+      <ExcelTools
+        transactions={filteredTransactions}
+        onImport={importTransactions}
+      />
+    </>
+  )}
 
-        {activeTab === 'history' && (
-          <TransactionHistory
-            transactions={filteredTransactions}
-            filters={filters}
-            setFilters={setFilters}
-            categories={categories}
-            onEdit={openEditForm}
-            onDelete={removeTransaction}
-          />
-        )}
+  {activeTab === 'history' && (
+    <TransactionHistory
+      transactions={filteredTransactions}
+      filters={filters}
+      setFilters={setFilters}
+      categories={categories}
+      onEdit={openEditForm}
+      onDelete={removeTransaction}
+    />
+  )}
 
-        {/* Solucionado: Ahora renderiza los mismos gráficos del Dashboard pero limpios */}
-        {activeTab === 'charts' && (
-          <Dashboard 
-            transactions={filteredTransactions} 
-            allTransactions={transactions} 
-            loading={loading} 
-            onlyCharts={true} 
-          />
-        )}
+  {activeTab === 'charts' && (
+    <Dashboard 
+      transactions={filteredTransactions} 
+      allTransactions={transactions} 
+      loading={loading} 
+      onlyCharts={true} 
+      alertSettings={alertSettings}
+    />
+  )}
 
-        {activeTab === 'settings' && (
-  <Settings
-    onClearAll={async () => {
-      const confirmed = window.confirm(
-        '¿Deseas eliminar todas las transacciones?'
-      );
-
-      if (!confirmed) return;
-
-      for (const transaction of transactions) {
-        await removeTransaction(transaction.id);
-      }
-    }}
-  />
-)}
-      </main>
+  {activeTab === 'settings' && (
+    <Settings
+      alertSettings={alertSettings}
+      onAlertSettingsChange={updateAlertSettings}
+      categories={categories}
+      onAddCategory={addCategory}
+      onRemoveCategory={removeCategory}
+      onClearAll={async () => {
+        const confirmed = window.confirm(
+          '¿Deseas eliminar todas las transacciones?'
+        );
+        if (!confirmed) return;
+        for (const transaction of transactions) {
+          await removeTransaction(transaction.id);
+        }
+      }}
+    />
+  )}
+</main>
 
       {formOpen && (
         <TransactionForm

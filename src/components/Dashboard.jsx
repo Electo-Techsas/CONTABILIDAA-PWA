@@ -1,4 +1,4 @@
-import { ArrowDownRight, ArrowUpRight, Wallet } from 'lucide-react';
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, CalendarCheck, TrendingUp, Wallet } from 'lucide-react';
 import {
   Bar,
   BarChart,
@@ -12,6 +12,7 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
+import { buildMonthlyAccounting, buildSpendingAlerts, DEFAULT_ALERT_SETTINGS } from '../lib/monthlyAccounting';
 
 const money = new Intl.NumberFormat('es-CO', {
   style: 'currency',
@@ -59,7 +60,13 @@ function buildPaymentMethodData(allTransactions) {
   return Array.from(map.entries()).map(([method, balance]) => ({ method, balance }));
 }
 
-export default function Dashboard({ transactions, allTransactions, loading, onlyCharts = false }) {
+export default function Dashboard({
+  transactions,
+  allTransactions,
+  loading,
+  onlyCharts = false,
+  alertSettings = DEFAULT_ALERT_SETTINGS
+}) {
   const tForAbsoluteMetrics = allTransactions || transactions;
   
   const realIncome = tForAbsoluteMetrics.filter((item) => item.type === 'Ingreso').reduce((sum, item) => sum + Number(item.amount), 0);
@@ -72,6 +79,8 @@ export default function Dashboard({ transactions, allTransactions, loading, only
   const monthly = buildMonthlyData(transactions);
   const categories = buildCategoryData(transactions);
   const paymentMethodsData = buildPaymentMethodData(tForAbsoluteMetrics);
+  const accounting = buildMonthlyAccounting(tForAbsoluteMetrics);
+  const alerts = buildSpendingAlerts(accounting, alertSettings);
   const colors = [
   '#14b8a6',
   '#3b82f6',
@@ -229,6 +238,8 @@ export default function Dashboard({ transactions, allTransactions, loading, only
         </div>
       </article>
 
+      <MonthlyAccountingPanel accounting={accounting} alerts={alerts} />
+
       <div className="grid gap-4 xl:grid-cols-[1.35fr_0.9fr]">
         <article className="rounded-3xl liquid-card p-4">
           <div className="mb-4">
@@ -338,6 +349,109 @@ export default function Dashboard({ transactions, allTransactions, loading, only
         </article>
       </div>
     </section>
+  );
+}
+
+function MonthlyAccountingPanel({ accounting, alerts }) {
+  const active = accounting.activeMonth;
+  const recentClosed = accounting.closedMonths.slice(-3).reverse();
+
+  if (!active) {
+    return (
+      <article className="liquid-card rounded-[28px] p-5">
+        <h2 className="text-base font-semibold text-ink dark:text-white">Cierre mensual automatico</h2>
+        <p className="mt-2 text-sm text-muted dark:text-slate-400">
+          Cuando registres movimientos, la app empezara a cerrar meses anteriores y mostrar comparaciones.
+        </p>
+      </article>
+    );
+  }
+
+  return (
+    <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+      <article className="liquid-card rounded-[28px] p-5">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-ink dark:text-white">Cierre mensual automatico</h2>
+            <p className="text-sm text-muted dark:text-slate-400">
+              {active.status === 'closed' ? 'Ultimo mes cerrado' : 'Mes actual en seguimiento'}: {active.label}
+            </p>
+          </div>
+          <div className="grid h-11 w-11 place-items-center rounded-2xl liquid-button text-teal-600 dark:text-teal-400">
+            <CalendarCheck size={19} />
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <MiniStat label="Ingresos" value={money.format(active.income)} />
+          <MiniStat label="Egresos" value={money.format(active.expense)} tone="negative" />
+          <MiniStat label="Resultado" value={money.format(active.net)} tone={active.net >= 0 ? 'positive' : 'negative'} />
+        </div>
+
+        <div className="mt-4 rounded-2xl bg-white/25 p-4 dark:bg-slate-950/20">
+          <div className="flex items-center gap-2 text-sm font-semibold text-ink dark:text-white">
+            <TrendingUp size={16} className="text-teal-600 dark:text-teal-400" />
+            Resumen inteligente
+          </div>
+          <p className="mt-2 text-sm text-muted dark:text-slate-300">
+            El mayor gasto esta en <strong>{active.topCategory}</strong> con {money.format(active.topCategoryAmount)}
+            {' '}({Math.round(active.topCategoryPercent)}% de los egresos). Frente al mes anterior, los egresos
+            {' '}{active.expenseDelta >= 0 ? 'subieron' : 'bajaron'} {money.format(Math.abs(active.expenseDelta))}.
+          </p>
+        </div>
+      </article>
+
+      <article className="liquid-card rounded-[28px] p-5">
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-ink dark:text-white">Alertas y meses cerrados</h2>
+          <p className="text-sm text-muted dark:text-slate-400">Configurables desde ajustes</p>
+        </div>
+
+        <div className="space-y-3">
+          {alerts.length ? (
+            alerts.map((alert) => (
+              <div key={alert.title} className="rounded-2xl border border-orange-500/20 bg-orange-500/10 p-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-orange-600 dark:text-orange-300">
+                  <AlertTriangle size={16} />
+                  {alert.title}
+                </div>
+                <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">{alert.detail}</p>
+              </div>
+            ))
+          ) : (
+            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-300">
+              Sin alertas activas para el mes en seguimiento.
+            </div>
+          )}
+
+          {recentClosed.map((month) => (
+            <div key={month.month} className="flex items-center justify-between gap-3 rounded-2xl bg-white/25 p-3 dark:bg-slate-950/20">
+              <div>
+                <p className="text-sm font-semibold text-ink dark:text-white">{month.label}</p>
+                <p className="text-xs text-muted dark:text-slate-400">Cerrado automaticamente</p>
+              </div>
+              <p className={`text-sm font-bold ${month.net >= 0 ? 'text-positive' : 'text-negative'}`}>
+                {money.format(month.net)}
+              </p>
+            </div>
+          ))}
+        </div>
+      </article>
+    </section>
+  );
+}
+
+function MiniStat({ label, value, tone }) {
+  const toneClass = {
+    positive: 'text-positive',
+    negative: 'text-negative'
+  }[tone] || 'text-ink dark:text-white';
+
+  return (
+    <div className="rounded-2xl bg-white/25 p-3 dark:bg-slate-950/20">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted dark:text-slate-400">{label}</p>
+      <p className={`mt-1 break-words text-lg font-bold ${toneClass}`}>{value}</p>
+    </div>
   );
 }
 

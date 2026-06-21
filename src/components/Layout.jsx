@@ -54,17 +54,14 @@ export default function Layout({
   };
 
   return (
-    <div className="min-h-screen bg-surface dark:bg-slate-950 text-ink dark:text-white transition-colors duration-300 lg:flex relative overflow-hidden">
+    <div className="min-h-screen bg-surface dark:bg-black text-ink dark:text-white transition-colors duration-300 lg:flex relative overflow-hidden">
 
       {/* Fondo dinámico */}
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[700px] h-[700px] rounded-full bg-cyan-400/20 dark:bg-teal-900/20 blur-[120px] animate-pulse"></div>
-
-        <div className="absolute bottom-[-10%] right-[-5%] w-[800px] h-[800px] rounded-full bg-blue-400/15 dark:bg-blue-900/15 blur-[120px]"></div>
+      <div className="liquid-ambient fixed inset-0 z-0 pointer-events-none">
       </div>
 
       {/* Sidebar Desktop */}
-      <aside className="hidden lg:flex lg:flex-col justify-between w-72 h-screen sticky top-0 z-20 border-r border-white/30 dark:border-slate-800/50 liquid-sidebar px-4 py-6 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.10)]">
+      <aside className="hidden lg:flex lg:flex-col justify-between w-72 h-screen sticky top-0 z-20 border-r border-white/30 dark:border-white/10 liquid-sidebar px-4 py-6 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.10)]">
 
         <div>
           <div className="mb-8 px-3">
@@ -90,7 +87,7 @@ export default function Layout({
                   className={`flex h-12 w-full items-center gap-3 rounded-2xl px-4 text-sm font-medium transition-all duration-300 ${
                     isActive
                       ? 'bg-primary text-white dark:bg-teal-600 border border-teal-500/50 shadow-lg shadow-teal-600/20'
-                      : 'text-muted dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/40 hover:text-ink dark:hover:text-white'
+                      : 'text-muted dark:text-zinc-400 hover:bg-white/40 dark:hover:bg-white/10 hover:text-ink dark:hover:text-white'
                   }`}
                 >
                   <Icon size={19} />
@@ -105,7 +102,7 @@ export default function Layout({
         <div className="px-3">
           <button
             onClick={toggleDarkMode}
-            className="w-full flex items-center justify-between gap-3 rounded-2xl px-4 py-3 border border-white/50 dark:border-slate-700/50 bg-white/40 dark:bg-slate-800/40 backdrop-blur-md hover:bg-white/70 dark:hover:bg-slate-800/70 transition-all"
+            className="w-full flex items-center justify-between gap-3 rounded-2xl px-4 py-3 border border-white/50 dark:border-white/10 bg-white/40 dark:bg-white/10 backdrop-blur-md hover:bg-white/70 dark:hover:bg-white/15 transition-all"
           >
             <span className="text-xs font-semibold uppercase tracking-wide text-muted dark:text-slate-400">
               Tema
@@ -141,7 +138,7 @@ export default function Layout({
 <div className="fixed bottom-24 right-4 z-50 lg:hidden">
   <button
     onClick={toggleDarkMode}
-    className="flex h-14 w-14 items-center justify-center rounded-full liquid-card border border-white/30 dark:border-slate-700/50 shadow-xl"
+    className="flex h-14 w-14 items-center justify-center rounded-full liquid-card border border-white/30 dark:border-white/10 shadow-xl"
   >
     {isDark ? (
       <Moon size={22} className="text-teal-400" />
@@ -152,7 +149,7 @@ export default function Layout({
 </div>
 
       {/* Menú móvil */}
-      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-white/30 dark:border-slate-800/50 liquid-navbar px-2 py-2 shadow-[0_-4px_24px_-10px_rgba(0,0,0,0.15)] lg:hidden">
+      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-white/30 dark:border-white/10 liquid-navbar px-2 py-2 shadow-[0_-4px_24px_-10px_rgba(0,0,0,0.15)] lg:hidden">
         <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
           {items.map((item) => {
             const Icon = item.icon;
@@ -166,7 +163,7 @@ export default function Layout({
                 className={`grid min-h-14 place-items-center rounded-2xl text-[11px] font-medium transition-all duration-300 ${
                   isActive
                     ? 'bg-primary/10 text-primary dark:bg-teal-500/20 dark:text-teal-400 border border-teal-500/20'
-                    : 'text-muted dark:text-slate-400 hover:bg-white/30 dark:hover:bg-slate-800/30'
+                    : 'text-muted dark:text-zinc-400 hover:bg-white/30 dark:hover:bg-white/10'
                 }`}
               >
                 <div className="flex flex-col items-center gap-1">
