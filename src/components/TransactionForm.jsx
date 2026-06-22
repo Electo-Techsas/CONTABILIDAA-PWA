@@ -36,10 +36,12 @@ export default function TransactionForm({ transaction, categories, onSubmit, onC
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex items-end bg-black/45 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4 lg:left-72">
+    /* CORRECCIÓN: Se cambió bg-black/45 por bg-slate-900/15 para eliminar las luces negras en modo claro */
+    <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex items-end bg-slate-900/15 dark:bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4 lg:left-72">
       <form
         onSubmit={submit}
-        className="liquid-panel mb-[calc(5.75rem+env(safe-area-inset-bottom))] flex max-h-[calc(100dvh-6.5rem-env(safe-area-inset-bottom))] w-full max-w-xl flex-col rounded-[28px] shadow-2xl sm:mb-0 sm:max-h-[calc(100dvh-2rem)]"
+        /* CORRECCIÓN: Se aplicó glass-premium-card y una sombra suave shadow-slate-300/60 en modo claro */
+        className="glass-premium-card mb-[calc(5.75rem+env(safe-area-inset-bottom))] flex max-h-[calc(100dvh-6.5rem-env(safe-area-inset-bottom))] w-full max-w-xl flex-col rounded-[28px] shadow-2xl shadow-slate-300/60 dark:shadow-black/80 sm:mb-0 sm:max-h-[calc(100dvh-2rem)]"
       >
         <div className="flex items-center justify-between gap-4 border-b border-white/20 px-5 py-4 dark:border-white/10">
           <div className="min-w-0">

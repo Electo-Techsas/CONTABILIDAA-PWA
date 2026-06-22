@@ -19,7 +19,7 @@ export default function TransactionHistory({
   return (
     <section
   id="history"
-  className="liquid-card rounded-[28px] p-5"
+  className="glass-premium-card rounded-[28px] p-5"
 >
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
@@ -94,7 +94,7 @@ export default function TransactionHistory({
         {transactions.map((item) => (
           <article
   key={item.id}
-  className="liquid-card rounded-2xl p-4"
+  className="glass-premium-card rounded-2xl p-4"
 >
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>

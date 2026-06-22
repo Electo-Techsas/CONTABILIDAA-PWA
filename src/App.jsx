@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { LogOut, Plus } from 'lucide-react';
 import Dashboard from './components/Dashboard';
+import DashboardMirror from './components/DashboardMirror';
 import ExcelTools from './components/ExcelTools';
 import Layout from './components/Layout';
 import Login from './components/Login';
@@ -151,103 +152,113 @@ export default function App() {
   };
 
   return (
-    <Layout active={activeTab} setActive={setActiveTab}>
-      <header className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between animate-fade-in">
-        <div>
-          <p className="text-sm font-bold text-teal-600 dark:text-teal-400 tracking-wide">Contabilidad PWA</p>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-white sm:text-3xl tracking-tight">
-            {getTitle()}
-          </h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={openNewForm}
-            className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-teal-600 hover:bg-teal-500 px-4 text-sm font-semibold text-white shadow-lg shadow-teal-600/30 transition-all"
-          >
-            <Plus size={18} />
-            Nueva transaccion
-          </button>
-          <button
-            onClick={signOut}
-            className="grid h-11 w-11 place-items-center rounded-2xl border border-white/30 dark:border-slate-800/50 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md text-slate-600 dark:text-slate-300 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all shadow-sm"
-            title="Cerrar sesion"
-          >
-            <LogOut size={18} />
-          </button>
-        </div>
-      </header>
-
-      <main className="space-y-5 pb-24 lg:pb-8 animate-fade-in">
-  
-  {activeTab === 'dashboard' && (
-    <Dashboard 
-      transactions={filteredTransactions} 
-      allTransactions={transactions} 
-      loading={loading} 
-      alertSettings={alertSettings}
-    />
-  )}
-
-  {activeTab === 'excel' && (
     <>
-      <WalletImporter onImport={createTransaction} />
-      <ExcelTools
-        transactions={filteredTransactions}
-        onImport={importTransactions}
-      />
+     
+<DashboardMirror
+    activeTab={activeTab}
+    transactions={filteredTransactions}
+  />
+      
+
+ 
+
+    <Layout active={activeTab} setActive={setActiveTab}>
+        <header className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between animate-fade-in">
+          <div>
+            <p className="text-sm font-bold text-teal-600 dark:text-teal-400 tracking-wide">Contabilidad PWA</p>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-white sm:text-3xl tracking-tight">
+              {getTitle()}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={openNewForm}
+              className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-teal-600 hover:bg-teal-500 px-4 text-sm font-semibold text-white shadow-lg shadow-teal-600/30 transition-all"
+            >
+              <Plus size={18} />
+              Nueva transaccion
+            </button>
+            <button
+              onClick={signOut}
+              className="grid h-11 w-11 place-items-center rounded-2xl border border-white/30 dark:border-slate-800/50 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md text-slate-600 dark:text-slate-300 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all shadow-sm"
+              title="Cerrar sesion"
+            >
+              <LogOut size={18} />
+            </button>
+          </div>
+        </header>
+
+        <main className="space-y-5 pb-24 lg:pb-8 animate-fade-in">
+          {activeTab === 'dashboard' && (
+            <Dashboard 
+              transactions={filteredTransactions} 
+              allTransactions={transactions} 
+              loading={loading} 
+              alertSettings={alertSettings}
+            />
+          )}
+
+          {activeTab === 'excel' && (
+            <>
+              <WalletImporter onImport={createTransaction} />
+              <ExcelTools
+                transactions={filteredTransactions}
+                onImport={importTransactions}
+              />
+            </>
+          )}
+
+          {activeTab === 'history' && (
+            <TransactionHistory
+              transactions={filteredTransactions}
+              filters={filters}
+              setFilters={setFilters}
+              categories={categories}
+              onEdit={openEditForm}
+              onDelete={removeTransaction}
+            />
+          )}
+
+          {activeTab === 'charts' && (
+            <Dashboard 
+              transactions={filteredTransactions} 
+              allTransactions={transactions} 
+              loading={loading} 
+              onlyCharts={true} 
+              alertSettings={alertSettings}
+            />
+          )}
+
+          {activeTab === 'settings' && (
+            <Settings
+              alertSettings={alertSettings}
+              onAlertSettingsChange={updateAlertSettings}
+              categories={categories}
+              onAddCategory={addCategory}
+              onRemoveCategory={removeCategory}
+              onClearAll={async () => {
+                const confirmed = window.confirm(
+                  '¿Deseas eliminar todas las transacciones?'
+                );
+                if (!confirmed) return;
+                for (const transaction of transactions) {
+                  await removeTransaction(transaction.id);
+                }
+              }}
+            />
+          )}
+        </main>
+
+        {formOpen && (
+          <TransactionForm
+            transaction={editing}
+            categories={categories}
+            onSubmit={handleSubmit}
+            onClose={() => setFormOpen(false)}
+          />
+        )}
+      </Layout>
     </>
-  )}
-
-  {activeTab === 'history' && (
-    <TransactionHistory
-      transactions={filteredTransactions}
-      filters={filters}
-      setFilters={setFilters}
-      categories={categories}
-      onEdit={openEditForm}
-      onDelete={removeTransaction}
-    />
-  )}
-
-  {activeTab === 'charts' && (
-    <Dashboard 
-      transactions={filteredTransactions} 
-      allTransactions={transactions} 
-      loading={loading} 
-      onlyCharts={true} 
-      alertSettings={alertSettings}
-    />
-  )}
-
-  {activeTab === 'settings' && (
-    <Settings
-      alertSettings={alertSettings}
-      onAlertSettingsChange={updateAlertSettings}
-      categories={categories}
-      onAddCategory={addCategory}
-      onRemoveCategory={removeCategory}
-      onClearAll={async () => {
-        const confirmed = window.confirm(
-          '¿Deseas eliminar todas las transacciones?'
-        );
-        if (!confirmed) return;
-        for (const transaction of transactions) {
-          await removeTransaction(transaction.id);
-        }
-      }}
-    />
-  )}
-</main>
-
-      {formOpen && (
-        <TransactionForm
-          transaction={editing}
-          categories={categories}
-          onSubmit={handleSubmit}
-          onClose={() => setFormOpen(false)}
-        />
-      )}
-    </Layout>
   );
 }
 

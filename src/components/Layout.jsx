@@ -54,7 +54,8 @@ export default function Layout({
   };
 
   return (
-    <div className="min-h-screen bg-surface dark:bg-black text-ink dark:text-white transition-colors duration-300 lg:flex relative overflow-hidden">
+    /* CORRECCIÓN: Se cambió 'bg-surface dark:bg-black' por 'bg-transparent' para que se vean las burbujas del App.jsx */
+    <div className="min-h-screen bg-transparent text-ink dark:text-white transition-colors duration-300 lg:flex relative overflow-hidden">
 
       {/* Fondo dinámico */}
       <div className="liquid-ambient fixed inset-0 z-0 pointer-events-none">
@@ -138,7 +139,7 @@ export default function Layout({
 <div className="fixed bottom-24 right-4 z-50 lg:hidden">
   <button
     onClick={toggleDarkMode}
-    className="flex h-14 w-14 items-center justify-center rounded-full liquid-card border border-white/30 dark:border-white/10 shadow-xl"
+    className="flex h-14 w-14 items-center justify-center rounded-full glass-premium-card border border-white/30 dark:border-white/10 shadow-xl"
   >
     {isDark ? (
       <Moon size={22} className="text-teal-400" />

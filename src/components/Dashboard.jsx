@@ -96,7 +96,7 @@ export default function Dashboard({
   if (onlyCharts) {
     return (
       <div className="grid gap-4 xl:grid-cols-[1.35fr_0.9fr]">
-        <article className="rounded-3xl liquid-card p-5">
+        <article className="rounded-3xl glass-premium-card p-5">
           <div className="mb-4">
             <h2 className="text-base font-semibold text-ink dark:text-white">Ingresos vs egresos</h2>
             <p className="text-sm text-muted dark:text-slate-400">Comparativo mensual segun filtros activos</p>
@@ -159,7 +159,7 @@ export default function Dashboard({
           </div>
         </article>
 
-        <article className="rounded-3xl liquid-card p-5">
+        <article className="rounded-3xl glass-premium-card p-5">
           <div className="mb-4">
             <h2 className="text-base font-semibold text-ink dark:text-white">Egresos por categoria</h2>
             <p className="text-sm text-muted dark:text-slate-400">Distribucion de gastos</p>
@@ -208,14 +208,19 @@ export default function Dashboard({
 
   return (
     <section id="dashboard" className="space-y-5">
-      <div className="grid gap-3 md:grid-cols-3">
-        <Metric title="Saldo actual" value={money.format(balance)} icon={Wallet} tone="primary" />
+      {/* Cambiamos el contenedor principal a una cuadrícula de 2 columnas */}
+      <div className="grid gap-3 grid-cols-2">
+        {/* Envolvemos 'Saldo actual' en un div que ocupa las 2 columnas (ancho completo) */}
+        <div className="col-span-2">
+          <Metric title="Saldo actual" value={money.format(balance)} icon={Wallet} tone="primary" />
+        </div>
+        {/* 'Ingresos' y 'Egresos' ocuparán automáticamente 1 columna cada uno, quedando lado a lado */}
         <Metric title="Ingresos" value={money.format(income)} icon={ArrowUpRight} tone="positive" />
         <Metric title="Egresos" value={money.format(expense)} icon={ArrowDownRight} tone="negative" />
       </div>
 
       {/* Sección Solucionada: ¿Dónde está mi dinero? */}
-      <article className="liquid-card rounded-[28px] p-5">
+      <article className="glass-premium-card rounded-[28px] p-5">
         <div className="mb-4">
           <h2 className="text-base font-semibold text-ink dark:text-white">¿Dónde está mi dinero?</h2>
           <p className="text-sm text-muted dark:text-slate-400">Distribución del saldo real acumulado por método de pago</p>
@@ -224,7 +229,7 @@ export default function Dashboard({
           {paymentMethodsData.map(({ method, balance: mBalance }) => (
             <div
   key={method}
-  className="rounded-2xl liquid-card p-4"
+  className="rounded-2xl glass-premium-card p-4"
 >
               <div className="flex items-center gap-2 mb-1">
                 <Wallet size={14} className="text-teal-600 dark:text-teal-400" />
@@ -241,9 +246,9 @@ export default function Dashboard({
       <MonthlyAccountingPanel accounting={accounting} alerts={alerts} />
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_0.9fr]">
-        <article className="rounded-3xl liquid-card p-4">
-          <div className="mb-4">
-            <h2 className="text-base font-semibold text-ink dark:text-white">Ingresos vs egresos</h2>
+        <article className="rounded-3xl glass-premium-card p-4">
+  <div className="mb-4">
+    <h2 className="text-base font-semibold text-ink dark:text-white">Ingresos vs egresos</h2>
             <p className="text-sm text-muted dark:text-slate-400">Comparativo mensual segun filtros activos</p>
           </div>
           <div className="h-72 chart-glass">
@@ -304,9 +309,9 @@ export default function Dashboard({
           </div>
         </article>
 
-        <article className="rounded-3xl liquid-card p-4">
-          <div className="mb-4">
-            <h2 className="text-base font-semibold text-ink dark:text-white">Egresos por categoria</h2>
+        <article className="rounded-3xl glass-premium-card p-4">
+  <div className="mb-4">
+    <h2 className="text-base font-semibold text-ink dark:text-white">Egresos por categoria</h2>
             <p className="text-sm text-muted dark:text-slate-400">Distribucion de gastos</p>
           </div>
           <div className="h-72 chart-glass">
@@ -358,7 +363,7 @@ function MonthlyAccountingPanel({ accounting, alerts }) {
 
   if (!active) {
     return (
-      <article className="liquid-card rounded-[28px] p-5">
+      <article className="glass-premium-card rounded-[28px] p-5">
         <h2 className="text-base font-semibold text-ink dark:text-white">Cierre mensual automatico</h2>
         <p className="mt-2 text-sm text-muted dark:text-slate-400">
           Cuando registres movimientos, la app empezara a cerrar meses anteriores y mostrar comparaciones.
@@ -369,7 +374,7 @@ function MonthlyAccountingPanel({ accounting, alerts }) {
 
   return (
     <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-      <article className="liquid-card rounded-[28px] p-5">
+      <article className="glass-premium-card rounded-[28px] p-5">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h2 className="text-base font-semibold text-ink dark:text-white">Cierre mensual automatico</h2>
@@ -401,7 +406,7 @@ function MonthlyAccountingPanel({ accounting, alerts }) {
         </div>
       </article>
 
-      <article className="liquid-card rounded-[28px] p-5">
+      <article className="glass-premium-card rounded-[28px] p-5">
         <div className="mb-4">
           <h2 className="text-base font-semibold text-ink dark:text-white">Alertas y meses cerrados</h2>
           <p className="text-sm text-muted dark:text-slate-400">Configurables desde ajustes</p>
@@ -456,23 +461,67 @@ function MiniStat({ label, value, tone }) {
 }
 
 function Metric({ title, value, icon: Icon, tone }) {
-  const toneClass = {
-    primary: 'bg-teal-500/10 text-teal-600 dark:text-teal-400',
-    positive: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-    negative: 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
-  }[tone];
+  // Ajustamos dinámicamente los colores y la animación basándonos en el tipo de tarjeta (tone)
+  const setup = {
+    primary: {
+      toneClass: 'text-teal-600 dark:text-teal-400',
+      badgeBg: 'bg-teal-500/10 text-teal-600 dark:text-teal-400',
+      animClass: 'animate-levitate-slow',
+      extraText: 'Disponible Total ⊕'
+    },
+    positive: {
+      toneClass: 'text-emerald-600 dark:text-emerald-400',
+      badgeBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+      animClass: 'animate-levitate-delayed',
+      extraText: '↑ Este Mes (Actual)'
+    },
+    negative: {
+      toneClass: 'text-rose-600 dark:text-rose-400',
+      badgeBg: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
+      animClass: 'animate-levitate-fast',
+      extraText: '↓ Este Mes (Actual)'
+    }
+  }[tone] || { toneClass: '', badgeBg: '', animClass: '', extraText: '' };
+
+  // Obtener hora actual del sistema formateada para el detalle sutil de actualización
+  const currentFormattedTime = new Date().toLocaleTimeString('es-CO', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
 
   return (
-    <article className="liquid-card rounded-[28px] p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm font-medium text-muted dark:text-slate-400">{title}</p>
-        <div
-  className={`grid h-12 w-12 place-items-center rounded-2xl liquid-button ${toneClass}`}
->
-          <Icon size={20} />
-        </div>
+    <article className={`glass-premium-card ${setup.animClass} rounded-[28px] p-6 flex flex-col items-center justify-center transition-all`}>
+      {/* Cabecera de la tarjeta con alineación horizontal para el título y el icono */}
+      <div className="flex items-center justify-between w-full mb-3">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400/80 dark:text-slate-500">
+          {title}
+        </p>
+        {Icon && (
+          <div className={`p-2 rounded-2xl ${setup.badgeBg} flex items-center justify-center`}>
+            <Icon size={18} />
+          </div>
+        )}
       </div>
-      <p className="break-words text-3xl font-bold text-ink dark:text-white">{value}</p>
+
+      {/* El Monto Principal - Ajustado a text-3xl para un look más limpio y compacto */}
+      <p className={`break-words text-3xl font-extrabold tracking-tight mb-3 w-full text-center ${
+  tone === 'primary' ? 'text-ink dark:text-white' : setup.toneClass
+}`}>
+  {value}
+</p>
+
+      {/* El Sub-badge flotante justo debajo del número */}
+      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wide ${setup.badgeBg}`}>
+        <span>{setup.extraText}</span>
+      </div>
+
+      {/* Timestamp de actualización sutil en la base (solo para la tarjeta de Saldo Principal) */}
+      {tone === 'primary' && (
+        <p className="text-[10px] text-slate-400/60 dark:text-slate-500/60 font-medium mt-3">
+          Updated: Hoy {currentFormattedTime}
+        </p>
+      )}
     </article>
   );
 }

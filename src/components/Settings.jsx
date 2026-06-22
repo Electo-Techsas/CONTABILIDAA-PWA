@@ -50,7 +50,7 @@ export default function Settings({
 
   return (
     <section className="space-y-5 animate-fade-in">
-      <article className="liquid-card rounded-[28px] p-5">
+      <article className="glass-premium-card rounded-[28px] p-5">
         <div className="mb-4 flex items-center gap-4">
           <div className="grid h-10 w-10 place-items-center rounded-2xl bg-primary/10 text-primary dark:text-teal-400">
             <User size={20} />
@@ -66,7 +66,7 @@ export default function Settings({
         </div>
       </article>
 
-      <article className="liquid-card rounded-[28px] p-5">
+      <article className="glass-premium-card rounded-[28px] p-5">
         <div className="mb-4 flex items-center gap-4">
           <div className="grid h-10 w-10 place-items-center rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400">
             <BellRing size={20} />
@@ -126,7 +126,7 @@ export default function Settings({
         </div>
       </article>
 
-      <article className="liquid-card rounded-[28px] p-5">
+      <article className="glass-premium-card rounded-[28px] p-5">
         <div className="mb-4 flex items-center gap-4">
           <div className="grid h-10 w-10 place-items-center rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-300">
             <Tag size={20} />
@@ -172,7 +172,7 @@ export default function Settings({
         </div>
       </article>
 
-      <article className="liquid-card rounded-[28px] border-negative/20 p-5">
+      <article className="glass-premium-card rounded-[28px] border-negative/20 p-5">
         <div className="mb-4 flex items-center gap-4">
           <div className="grid h-10 w-10 place-items-center rounded-2xl bg-negative/10 text-negative">
             <AlertTriangle size={20} />
