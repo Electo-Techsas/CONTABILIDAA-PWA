@@ -53,9 +53,11 @@ textarea {
     @apply h-11 w-full rounded-2xl px-3 text-sm outline-none transition-all;
 
     background: linear-gradient(135deg, rgba(255,255,255,.54), rgba(255,255,255,.24));
+
     backdrop-filter:
       blur(22px)
       saturate(190%);
+
     -webkit-backdrop-filter:
       blur(22px)
       saturate(190%);
@@ -63,6 +65,7 @@ textarea {
     border: 1px solid rgba(255,255,255,.34);
 
     color: #14201d;
+
     box-shadow:
       inset 0 1px 0 rgba(255,255,255,.50),
       inset 0 -1px 0 rgba(255,255,255,.16),
@@ -91,20 +94,24 @@ textarea {
 
     background:
       linear-gradient(145deg, rgba(255,255,255,.62), rgba(255,255,255,.24) 46%, rgba(255,255,255,.14));
+
     backdrop-filter:
       blur(38px)
       saturate(185%)
       contrast(105%);
+
     -webkit-backdrop-filter:
       blur(38px)
       saturate(185%)
       contrast(105%);
+
     border: 1px solid rgba(255,255,255,.38);
 
     box-shadow:
       inset 0 1px 0 rgba(255,255,255,.60),
       inset 0 -1px 0 rgba(255,255,255,.16),
       0 18px 50px rgba(15,23,42,.10);
+
     transition:
       transform .3s ease,
       box-shadow .3s ease;
@@ -114,16 +121,19 @@ textarea {
     background:
       linear-gradient(145deg, rgba(255,255,255,.078), rgba(255,255,255,.032) 42%, rgba(0,0,0,.48)),
       linear-gradient(315deg, rgba(20,184,166,.045), transparent 44%);
+
     border: 1px solid rgba(255,255,255,.12);
 
     backdrop-filter:
       blur(48px)
       saturate(150%)
       contrast(103%);
+
     -webkit-backdrop-filter:
       blur(48px)
       saturate(150%)
       contrast(103%);
+
     box-shadow:
       inset 0 1px 0 rgba(255,255,255,.14),
       inset 0 -1px 0 rgba(255,255,255,.045),
@@ -147,6 +157,7 @@ textarea {
     top: 0;
 
     height: 48%;
+
     background:
       linear-gradient(112deg, rgba(255,255,255,.48), rgba(255,255,255,.10) 42%, transparent 68%);
 
@@ -196,12 +207,14 @@ textarea {
 
     backdrop-filter: blur(22px) saturate(190%);
     -webkit-backdrop-filter: blur(22px) saturate(190%);
+
     border: 1px solid rgba(255,255,255,.32);
 
     box-shadow:
       inset 0 1px 0 rgba(255,255,255,.42),
       inset 0 -1px 0 rgba(255,255,255,.08),
       0 8px 22px rgba(0,0,0,.08);
+
     transition: all .25s ease;
   }
 
@@ -225,9 +238,11 @@ textarea {
 
   .liquid-navbar {
     background: linear-gradient(180deg, rgba(255,255,255,.58), rgba(255,255,255,.34));
+
     backdrop-filter:
       blur(36px)
       saturate(190%);
+
     -webkit-backdrop-filter:
       blur(36px)
       saturate(190%);
@@ -251,9 +266,11 @@ textarea {
 
   .liquid-sidebar {
     background: linear-gradient(145deg, rgba(255,255,255,.58), rgba(255,255,255,.26));
+
     backdrop-filter:
       blur(38px)
       saturate(190%);
+
     -webkit-backdrop-filter:
       blur(38px)
       saturate(190%);
@@ -276,16 +293,20 @@ textarea {
   .liquid-panel {
     position: relative;
     overflow: hidden;
+
     background:
       linear-gradient(145deg, rgba(255,255,255,.78), rgba(255,255,255,.42) 48%, rgba(255,255,255,.30));
+
     backdrop-filter:
       blur(38px)
       saturate(195%)
       contrast(106%);
+
     -webkit-backdrop-filter:
       blur(38px)
       saturate(195%)
       contrast(106%);
+
     border: 1px solid rgba(255,255,255,.42);
 
     box-shadow:
@@ -309,41 +330,24 @@ textarea {
     background:
       linear-gradient(145deg, rgba(255,255,255,.085), rgba(8,8,8,.86) 48%, rgba(0,0,0,.94)),
       linear-gradient(315deg, rgba(20,184,166,.045), transparent 46%);
+
     border-color: rgba(255,255,255,.13);
 
     backdrop-filter:
       blur(54px)
       saturate(150%)
       contrast(103%);
+
     -webkit-backdrop-filter:
       blur(54px)
       saturate(150%)
       contrast(103%);
+
     box-shadow:
       inset 0 1px 0 rgba(255,255,255,.15),
       inset 0 -1px 0 rgba(255,255,255,.045),
       inset 22px 0 48px rgba(255,255,255,.018),
       0 28px 80px rgba(0,0,0,.70);
-  }
-
-  /* NUEVAS CLASES PARA TUS TARJETAS FINANCIERAS FLOTANTES */
-  .finance-float-card {
-    @apply liquid-card rounded-2xl p-4 flex flex-col justify-between transition-all duration-500;
-  }
-
-  /* Variaciones de animación sutiles para que no floten todas al mismo tiempo */
-  .animate-float-slow {
-    animation: floatFinance 8s ease-in-out infinite;
-  }
-
-  .animate-float-delayed {
-    animation: floatFinance 9s ease-in-out infinite;
-    animation-delay: 1.5s;
-  }
-
-  .animate-float-fast {
-    animation: floatFinance 7s ease-in-out infinite;
-    animation-delay: 0.5s;
   }
 }
 
@@ -358,22 +362,6 @@ textarea {
 
   100% {
     transform: translateY(0px);
-  }
-}
-
-/* NUEVA ANIMACIÓN EXCLUSIVA PARA TUS CUADRITOS DE SALDO */
-@keyframes floatFinance {
-  0% {
-    transform: translateY(0px) scale(1);
-  }
-  50% {
-    transform: translateY(-8px) scale(1.01);
-    box-shadow: 
-      inset 0 1px 0 rgba(255,255,255,.60),
-      0 25px 60px rgba(15,23,42,.15);
-  }
-  100% {
-    transform: translateY(0px) scale(1);
   }
 }
 
