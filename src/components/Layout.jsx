@@ -55,7 +55,7 @@ export default function Layout({
 
   return (
     /* CORRECCIÓN: Se cambió 'bg-surface dark:bg-black' por 'bg-transparent' para que se vean las burbujas del App.jsx */
-    <div className="min-h-screen bg-transparent text-ink dark:text-white transition-colors duration-300 lg:flex relative overflow-hidden">
+    <div className="min-h-[100dvh] bg-transparent text-ink dark:text-white transition-colors duration-300 lg:flex relative overflow-hidden">
 
       {/* Fondo dinámico */}
       <div className="liquid-ambient fixed inset-0 z-0 pointer-events-none">
@@ -131,7 +131,7 @@ export default function Layout({
       </aside>
 
       {/* Contenido principal */}
-      <main className="relative z-10 min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8 pb-24 lg:pb-5">
+      <main className="relative z-10 min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8 pb-36 lg:pb-5">
         <div className="mx-auto max-w-7xl animate-fade-in">
           {children}
         </div>
@@ -150,8 +150,8 @@ export default function Layout({
 </div>
 
       {/* Menú móvil */}
-      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-white/30 dark:border-white/10 liquid-navbar px-2 py-2 shadow-[0_-4px_24px_-10px_rgba(0,0,0,0.15)] lg:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 w-full max-w-[100vw] overflow-hidden border-t border-white/30 dark:border-white/10 liquid-navbar px-2 py-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] lg:hidden">
+        <div className="mx-auto grid w-full max-w-md grid-cols-5 gap-1">
           {items.map((item) => {
             const Icon = item.icon;
             const isActive = item.key === active;

@@ -17,27 +17,14 @@ export default function DashboardMirror({
   const balance = income - expense;
 
   return (
-    <div className="
-  fixed
-  inset-0
-  -z-10
-  overflow-hidden
-  pointer-events-none
-  select-none
-"
-
-  className="
-    absolute
-    inset-0
-    blur-[110px]
-    opacity-[0.18]
-    will-change-transform
-  "
-  style={{
-    animation: 'ambientZoom 30s ease-in-out infinite',
-    transformOrigin: 'center center'
-  }}
->
+    <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none select-none">
+      <div
+        className="absolute inset-0 blur-[110px] opacity-[0.18] will-change-transform"
+        style={{
+          animation: 'ambientZoom 30s ease-in-out infinite',
+          transformOrigin: 'center center'
+        }}
+      >
 
         {/* Tarjetas KPI */}
         <div className="grid gap-8 md:grid-cols-3 p-20">
@@ -72,6 +59,7 @@ export default function DashboardMirror({
         </div>
 
       </div>
+    </div>
     </div>
   );
 }
