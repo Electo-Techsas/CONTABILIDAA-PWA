@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { buildImportHash } from '../lib/excel';
 import { hasSupabaseConfig, supabase } from '../lib/supabase';
 import { normalizeAmount } from '../lib/currency';
+import { isAdjustment, isTransfer } from '../lib/financeFeatures';
 
 function cleanTransaction(input, currency) {
   return {
@@ -111,7 +112,10 @@ export function useTransactions(uid, currency) {
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((item) => {
-      const typeMatch = filters.type === 'Todos' || item.type === filters.type;
+      const typeMatch = filters.type === 'Todos'
+        || item.type === filters.type
+        || (filters.type === 'Transferencia' && isTransfer(item))
+        || (filters.type === 'Ajuste' && isAdjustment(item));
       const categoryMatch = filters.category === 'Todas' || item.category === filters.category;
       const fromMatch = !filters.from || item.date >= filters.from;
       const toMatch = !filters.to || item.date <= filters.to;

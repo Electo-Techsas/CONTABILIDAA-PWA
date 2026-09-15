@@ -1,6 +1,7 @@
 import { BellRing, CheckCircle2, PiggyBank, Plus, Target, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { addAmounts, formatMoney, getCurrencyStep, normalizeAmount } from '../lib/currency';
+import { isRealExpense } from '../lib/financeFeatures';
 import CollapsibleSection from './CollapsibleSection';
 
 function currentMonthKey() {
@@ -34,7 +35,7 @@ export default function PlanningPanel({
   const monthlyExpenses = useMemo(() => {
     const map = new Map();
     transactions
-      .filter((item) => item.type === 'Egreso' && item.date?.startsWith(month))
+      .filter((item) => isRealExpense(item) && item.date?.startsWith(month))
       .forEach((item) => {
         map.set(item.category, addAmounts([map.get(item.category) || 0, item.amount], currency));
       });

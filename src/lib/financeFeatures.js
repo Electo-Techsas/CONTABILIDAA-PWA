@@ -4,12 +4,20 @@ import { addAmounts, normalizeAmount } from './currency';
 export const TRANSFER_TYPE = 'Transferencia';
 export const ADJUSTMENT_TYPE = 'Ajuste';
 
+export function isTransfer(item) {
+  return item.type === TRANSFER_TYPE || /\[Destino:[^\]]+\]/.test(item.description || '');
+}
+
+export function isAdjustment(item) {
+  return item.type === ADJUSTMENT_TYPE || /\[Ajuste:(positivo|negativo)\]/.test(item.description || '');
+}
+
 export function isRealIncome(item) {
-  return item.type === 'Ingreso';
+  return item.type === 'Ingreso' && !isAdjustment(item) && !isTransfer(item);
 }
 
 export function isRealExpense(item) {
-  return item.type === 'Egreso';
+  return item.type === 'Egreso' && !isAdjustment(item) && !isTransfer(item);
 }
 
 export function createTransferDescription(targetMethod, note = '') {
@@ -43,20 +51,20 @@ export function buildAccountBalances(transactions, currency, paymentMethods = PA
 
     if (!balances.has(method)) balances.set(method, 0);
 
-    if (item.type === 'Ingreso') {
-      balances.set(method, addAmounts([balances.get(method), amount], currency));
-    } else if (item.type === 'Egreso') {
-      balances.set(method, addAmounts([balances.get(method), -amount], currency));
-    } else if (item.type === TRANSFER_TYPE) {
+    if (isTransfer(item)) {
       const target = parseTransferTarget(item.description);
       balances.set(method, addAmounts([balances.get(method), -amount], currency));
       if (target) {
         if (!balances.has(target)) balances.set(target, 0);
         balances.set(target, addAmounts([balances.get(target), amount], currency));
       }
-    } else if (item.type === ADJUSTMENT_TYPE) {
+    } else if (isAdjustment(item)) {
       const direction = parseAdjustmentDirection(item.description);
       balances.set(method, addAmounts([balances.get(method), direction === 'negativo' ? -amount : amount], currency));
+    } else if (item.type === 'Ingreso') {
+      balances.set(method, addAmounts([balances.get(method), amount], currency));
+    } else if (item.type === 'Egreso') {
+      balances.set(method, addAmounts([balances.get(method), -amount], currency));
     }
   });
 

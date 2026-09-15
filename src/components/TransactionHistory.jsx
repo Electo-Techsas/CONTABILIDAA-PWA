@@ -1,5 +1,5 @@
 import { Pencil, Trash2 } from 'lucide-react';
-import { ADJUSTMENT_TYPE, TRANSFER_TYPE, cleanFinanceDescription, parseAdjustmentDirection, parseTransferTarget } from '../lib/financeFeatures';
+import { ADJUSTMENT_TYPE, TRANSFER_TYPE, cleanFinanceDescription, isAdjustment, isTransfer, parseAdjustmentDirection, parseTransferTarget } from '../lib/financeFeatures';
 import { formatMoney } from '../lib/currency';
 
 export default function TransactionHistory({
@@ -67,7 +67,7 @@ export default function TransactionHistory({
 >
                 <td className="py-3 pr-3 text-slate-600 dark:text-slate-200">{item.date}</td>
                 <td className="py-3 pr-3">
-                  <TypeBadge type={item.type} />
+                  <TypeBadge type={getDisplayType(item)} />
                 </td>
                 <td className="py-3 pr-3 font-medium text-ink">{item.category}</td>
                 <td className="max-w-xs py-3 pr-3 text-slate-700 dark:text-slate-100">{formatDescription(item)}</td>
@@ -100,7 +100,7 @@ export default function TransactionHistory({
                 <p className="text-sm font-semibold text-ink">{item.category}</p>
                 <p className="text-xs text-slate-600 dark:text-slate-200">{item.date} · {item.paymentMethod}</p>
               </div>
-              <TypeBadge type={item.type} />
+              <TypeBadge type={getDisplayType(item)} />
             </div>
             <p className="mb-3 text-sm text-slate-700 dark:text-slate-100">{formatDescription(item) || 'Sin descripcion'}</p>
             <div className="flex items-center justify-between">
@@ -165,18 +165,25 @@ function TypeBadge({ type }) {
   );
 }
 
+function getDisplayType(item) {
+  if (isTransfer(item)) return TRANSFER_TYPE;
+  if (isAdjustment(item)) return ADJUSTMENT_TYPE;
+  return item.type;
+}
+
 function amountClass(item) {
-  if (item.type === 'Ingreso') return 'text-positive';
-  if (item.type === 'Egreso') return 'text-negative';
-  if (item.type === ADJUSTMENT_TYPE) {
+  if (isAdjustment(item)) {
     return parseAdjustmentDirection(item.description) === 'negativo' ? 'text-orange-500' : 'text-positive';
   }
+  if (isTransfer(item)) return 'text-blue-500';
+  if (item.type === 'Ingreso') return 'text-positive';
+  if (item.type === 'Egreso') return 'text-negative';
   return 'text-blue-500';
 }
 
 function formatAmount(item, currency) {
-  if (item.type === TRANSFER_TYPE) return formatMoney(item.amount, currency);
-  if (item.type === ADJUSTMENT_TYPE) {
+  if (isTransfer(item)) return formatMoney(item.amount, currency);
+  if (isAdjustment(item)) {
     const sign = parseAdjustmentDirection(item.description) === 'negativo' ? '-' : '+';
     return `${sign}${formatMoney(item.amount, currency)}`;
   }
@@ -184,13 +191,13 @@ function formatAmount(item, currency) {
 }
 
 function formatDescription(item) {
-  if (item.type === TRANSFER_TYPE) {
+  if (isTransfer(item)) {
     const target = parseTransferTarget(item.description);
     const note = cleanFinanceDescription(item.description);
     return `Hacia ${target || 'otra cuenta'}${note ? ` - ${note}` : ''}`;
   }
 
-  if (item.type === ADJUSTMENT_TYPE) {
+  if (isAdjustment(item)) {
     const direction = parseAdjustmentDirection(item.description) === 'negativo' ? 'Resta de saldo' : 'Suma de saldo';
     const note = cleanFinanceDescription(item.description);
     return `${direction}${note ? ` - ${note}` : ''}`;

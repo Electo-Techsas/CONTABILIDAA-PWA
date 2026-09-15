@@ -190,7 +190,7 @@ export default function App() {
   const createInternalTransfer = async (values) => {
     await createTransaction({
       amount: values.amount,
-      type: TRANSFER_TYPE,
+      type: 'Egreso',
       category: 'Transferencia interna',
       date: values.date,
       description: createTransferDescription(values.to, values.note),
@@ -201,7 +201,7 @@ export default function App() {
   const createBalanceAdjustment = async (values) => {
     await createTransaction({
       amount: values.amount,
-      type: ADJUSTMENT_TYPE,
+      type: values.direction === 'negativo' ? 'Egreso' : 'Ingreso',
       category: 'Ajuste de saldo',
       date: values.date,
       description: createAdjustmentDescription(values.direction, values.note),

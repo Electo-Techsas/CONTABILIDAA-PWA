@@ -5,6 +5,7 @@ export const DEFAULT_ALERT_SETTINGS = {
   alertNegativeBalance: true
 };
 import { addAmounts, normalizeAmount } from './currency';
+import { isRealExpense, isRealIncome } from './financeFeatures';
 
 const monthFormatter = new Intl.DateTimeFormat('es-CO', {
   month: 'long',
@@ -40,11 +41,11 @@ export function buildMonthlyAccounting(transactions, now = new Date(), currency)
 
     record.transactionCount += 1;
 
-    if (item.type === 'Ingreso') {
+    if (isRealIncome(item)) {
       record.income = addAmounts([record.income, amount], currency);
     }
 
-    if (item.type === 'Egreso') {
+    if (isRealExpense(item)) {
       record.expense = addAmounts([record.expense, amount], currency);
       record.categories.set(item.category, addAmounts([record.categories.get(item.category) || 0, amount], currency));
     }
