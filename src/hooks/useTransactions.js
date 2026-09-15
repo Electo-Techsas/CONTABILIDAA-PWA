@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { buildImportHash } from '../lib/excel';
 import { hasSupabaseConfig, supabase } from '../lib/supabase';
+import { normalizeAmount } from '../lib/currency';
 
-function cleanTransaction(input) {
+function cleanTransaction(input, currency) {
   return {
-    amount: Number(input.amount),
+    amount: normalizeAmount(input.amount, currency),
     type: input.type,
     category: input.category,
     date: input.date,
@@ -14,8 +15,8 @@ function cleanTransaction(input) {
   };
 }
 
-function toDbTransaction(input, uid) {
-  const payload = cleanTransaction(input);
+function toDbTransaction(input, uid, currency) {
+  const payload = cleanTransaction(input, currency);
   return {
     user_id: uid,
     amount: payload.amount,
@@ -64,7 +65,7 @@ function toReadableError(error) {
   return new Error(message);
 }
 
-export function useTransactions(uid) {
+export function useTransactions(uid, currency) {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ type: 'Todos', category: 'Todas', from: '', to: '' });
@@ -120,7 +121,7 @@ export function useTransactions(uid) {
 
   async function createTransaction(input) {
     if (!hasSupabaseConfig) return;
-    const { error } = await supabase.from('transactions').insert(toDbTransaction(input, uid));
+    const { error } = await supabase.from('transactions').insert(toDbTransaction(input, uid, currency));
     if (error) throw toReadableError(error);
     await refreshTransactions();
   }
@@ -129,7 +130,7 @@ export function useTransactions(uid) {
     if (!hasSupabaseConfig) return;
     const { error } = await supabase
       .from('transactions')
-      .update(toDbTransaction(input, uid))
+      .update(toDbTransaction(input, uid, currency))
       .eq('id', id)
       .eq('user_id', uid);
     if (error) throw toReadableError(error);
@@ -166,7 +167,7 @@ export function useTransactions(uid) {
     const existingHashes = new Set((existing || []).map((item) => item.import_hash));
     const newItems = items
       .filter((item) => !existingHashes.has(item.importHash))
-      .map((item) => toDbTransaction(item, uid));
+      .map((item) => toDbTransaction(item, uid, currency));
 
     if (newItems.length) {
       const { error } = await supabase.from('transactions').insert(newItems);

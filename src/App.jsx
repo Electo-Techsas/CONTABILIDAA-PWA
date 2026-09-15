@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { LogOut, Plus } from 'lucide-react';
+import { CalendarDays, LogOut, Plus } from 'lucide-react';
+import AccountActions from './components/AccountActions';
 import Dashboard from './components/Dashboard';
 import DashboardMirror from './components/DashboardMirror';
 import ExcelTools from './components/ExcelTools';
@@ -11,19 +12,48 @@ import { useAuth } from './hooks/useAuth';
 import { useTransactions } from './hooks/useTransactions';
 import Settings from './components/Settings';
 import WalletImporter from './components/WalletImporter';
-import { DEFAULT_CATEGORIES } from './lib/schema';
+import PlanningPanel from './components/PlanningPanel';
+import { DEFAULT_CATEGORIES, PAYMENT_METHODS } from './lib/schema';
 import { hasSupabaseConfig } from './lib/supabase';
 import { DEFAULT_ALERT_SETTINGS } from './lib/monthlyAccounting';
+import { DEFAULT_CURRENCY } from './lib/currency';
+import {
+  ADJUSTMENT_TYPE,
+  TRANSFER_TYPE,
+  createAdjustmentDescription,
+  createTransferDescription,
+  getLastDaysRange,
+  getMonthRange,
+  getPreviousMonthRange
+} from './lib/financeFeatures';
 
 const DEFAULT_CATEGORY_SETTINGS = {
   custom: [],
   hidden: []
 };
 
+function loadStored(key, fallback) {
+  if (typeof window === 'undefined') return fallback;
+
+  try {
+    const saved = window.localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export default function App() {
   const { user, loading: authLoading, signIn, signOut } = useAuth();
   const [editing, setEditing] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [accountAction, setAccountAction] = useState(null);
+  const [accountLimits, setAccountLimits] = useState(() => loadStored('finance-account-limits', {}));
+  const [categoryBudgets, setCategoryBudgets] = useState(() => loadStored('finance-category-budgets', {}));
+  const [savingsGoals, setSavingsGoals] = useState(() => loadStored('finance-savings-goals', []));
+  const [recurringItems, setRecurringItems] = useState(() => loadStored('finance-recurring-items', []));
+  const [currency, setCurrency] = useState(() => loadStored('finance-currency', DEFAULT_CURRENCY));
+  const [paymentMethods, setPaymentMethods] = useState(() => loadStored('finance-payment-methods', PAYMENT_METHODS));
   const [alertSettings, setAlertSettings] = useState(() => {
     if (typeof window === 'undefined') return DEFAULT_ALERT_SETTINGS;
 
@@ -57,7 +87,7 @@ export default function App() {
     updateTransaction,
     removeTransaction,
     importTransactions
-  } = useTransactions(user?.id);
+  } = useTransactions(user?.id, currency);
 
   const categories = useMemo(() => {
     const hidden = new Set(categorySettings.hidden);
@@ -84,6 +114,23 @@ export default function App() {
     if (typeof window !== 'undefined') {
       window.localStorage.setItem('finance-category-settings', JSON.stringify(nextSettings));
     }
+  };
+
+  const updateStoredState = (key, setter) => (nextValue) => {
+    setter(nextValue);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(key, JSON.stringify(nextValue));
+    }
+  };
+
+  const updateAccountLimits = updateStoredState('finance-account-limits', setAccountLimits);
+  const updateCategoryBudgets = updateStoredState('finance-category-budgets', setCategoryBudgets);
+  const updateSavingsGoals = updateStoredState('finance-savings-goals', setSavingsGoals);
+  const updateRecurringItems = updateStoredState('finance-recurring-items', setRecurringItems);
+  const updatePaymentMethods = updateStoredState('finance-payment-methods', setPaymentMethods);
+  const updateCurrency = (nextCurrency) => {
+    setCurrency(nextCurrency);
+    if (typeof window !== 'undefined') window.localStorage.setItem('finance-currency', JSON.stringify(nextCurrency));
   };
 
   const addCategory = (categoryName) => {
@@ -140,6 +187,48 @@ export default function App() {
     setEditing(null);
   };
 
+  const createInternalTransfer = async (values) => {
+    await createTransaction({
+      amount: values.amount,
+      type: TRANSFER_TYPE,
+      category: 'Transferencia interna',
+      date: values.date,
+      description: createTransferDescription(values.to, values.note),
+      paymentMethod: values.from
+    });
+  };
+
+  const createBalanceAdjustment = async (values) => {
+    await createTransaction({
+      amount: values.amount,
+      type: ADJUSTMENT_TYPE,
+      category: 'Ajuste de saldo',
+      date: values.date,
+      description: createAdjustmentDescription(values.direction, values.note),
+      paymentMethod: values.paymentMethod
+    });
+  };
+
+  const createRecurringTransaction = async (item) => {
+    const month = new Date().toISOString().slice(0, 7);
+    const date = `${month}-${String(item.day).padStart(2, '0')}`;
+    await createTransaction({
+      amount: item.amount,
+      type: 'Egreso',
+      category: item.category,
+      date,
+      description: item.description,
+      paymentMethod: item.paymentMethod || 'Efectivo'
+    });
+    updateRecurringItems(recurringItems.map((current) => (
+      current.id === item.id ? { ...current, lastCreatedMonth: month } : current
+    )));
+  };
+
+  const applyQuickRange = (range) => {
+    setFilters((current) => ({ ...current, ...range }));
+  };
+
   const getTitle = () => {
     switch (activeTab) {
       case 'dashboard': return 'Panel financiero';
@@ -147,6 +236,7 @@ export default function App() {
       case 'history': return 'Historial de movimientos';
       case 'excel': return 'Importación y exportación';
       case 'settings': return 'Ajustes del sistema';
+      case 'planning': return 'Plan financiero';
       default: return 'Panel financiero';
     }
   };
@@ -169,6 +259,12 @@ export default function App() {
             <h1 className="text-2xl font-bold text-slate-800 dark:text-white sm:text-3xl tracking-tight">
               {getTitle()}
             </h1>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <QuickDateButton label="Este mes" onClick={() => applyQuickRange(getMonthRange())} />
+              <QuickDateButton label="Mes anterior" onClick={() => applyQuickRange(getPreviousMonthRange())} />
+              <QuickDateButton label="7 dias" onClick={() => applyQuickRange(getLastDaysRange(7))} />
+              <QuickDateButton label="Todo" onClick={() => applyQuickRange({ from: '', to: '' })} />
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -195,6 +291,34 @@ export default function App() {
               allTransactions={transactions} 
               loading={loading} 
               alertSettings={alertSettings}
+              accountLimits={accountLimits}
+              budgets={categoryBudgets}
+              onBudgetsChange={updateCategoryBudgets}
+              goals={savingsGoals}
+              onGoalsChange={updateSavingsGoals}
+              recurringItems={recurringItems}
+              onRecurringChange={updateRecurringItems}
+              onCreateRecurring={createRecurringTransaction}
+              budgetCategories={categories}
+              onTransfer={(method) => setAccountAction({ type: 'transfer', account: method })}
+              onAdjust={(method) => setAccountAction({ type: 'adjust', account: method })}
+              currency={currency}
+              paymentMethods={paymentMethods}
+            />
+          )}
+
+          {activeTab === 'planning' && (
+            <PlanningPanel
+              transactions={transactions}
+              categories={categories}
+              budgets={categoryBudgets}
+              onBudgetsChange={updateCategoryBudgets}
+              goals={savingsGoals}
+              onGoalsChange={updateSavingsGoals}
+              recurringItems={recurringItems}
+              onRecurringChange={updateRecurringItems}
+              onCreateRecurring={createRecurringTransaction}
+              currency={currency}
             />
           )}
 
@@ -216,6 +340,7 @@ export default function App() {
               categories={categories}
               onEdit={openEditForm}
               onDelete={removeTransaction}
+              currency={currency}
             />
           )}
 
@@ -226,6 +351,8 @@ export default function App() {
               loading={loading} 
               onlyCharts={true} 
               alertSettings={alertSettings}
+              budgetCategories={categories}
+              currency={currency}
             />
           )}
 
@@ -233,9 +360,16 @@ export default function App() {
             <Settings
               alertSettings={alertSettings}
               onAlertSettingsChange={updateAlertSettings}
+              accountLimits={accountLimits}
+              onAccountLimitsChange={updateAccountLimits}
               categories={categories}
               onAddCategory={addCategory}
               onRemoveCategory={removeCategory}
+              currency={currency}
+              onCurrencyChange={updateCurrency}
+              paymentMethods={paymentMethods}
+              onPaymentMethodsChange={updatePaymentMethods}
+              usedPaymentMethods={transactions.map((item) => item.paymentMethod)}
               onClearAll={async () => {
                 const confirmed = window.confirm(
                   '¿Deseas eliminar todas las transacciones?'
@@ -255,10 +389,37 @@ export default function App() {
             categories={categories}
             onSubmit={handleSubmit}
             onClose={() => setFormOpen(false)}
+            currency={currency}
+            paymentMethods={paymentMethods}
+          />
+        )}
+
+        {accountAction && (
+          <AccountActions
+            action={accountAction.type}
+            account={accountAction.account}
+            onClose={() => setAccountAction(null)}
+            onTransfer={createInternalTransfer}
+            onAdjust={createBalanceAdjustment}
+            currency={currency}
+            paymentMethods={paymentMethods}
           />
         )}
       </Layout>
     </>
+  );
+}
+
+function QuickDateButton({ label, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-white/35 px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-white/60 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15"
+    >
+      <CalendarDays size={14} />
+      {label}
+    </button>
   );
 }
 

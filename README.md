@@ -44,7 +44,7 @@ create table public.transactions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   amount numeric(14,2) not null,
-  type text not null check (type in ('Ingreso', 'Egreso')),
+  type text not null check (type in ('Ingreso', 'Egreso', 'Transferencia', 'Ajuste')),
   category text not null,
   date date not null,
   description text default '',
@@ -118,6 +118,14 @@ Columnas opcionales:
 - Metodo
 
 El importador genera `import_hash` para evitar duplicar registros importados previamente.
+
+## Moneda y plan financiero
+
+En Ajustes puedes elegir COP, USD o EUR. COP se guarda y opera en pesos enteros; USD y EUR conservan dos decimales. El selector es una moneda de trabajo global: cambiarla modifica la presentación y la precisión de los nuevos importes, pero no convierte automáticamente los datos ya registrados.
+
+El plan financiero incluye presupuestos por categoría, metas de ahorro con aportes y retiros manuales, y gastos recurrentes que puedes registrar una vez por mes. Estos ajustes se conservan localmente en el navegador; las transacciones registradas sí se guardan en Supabase.
+
+Antes de usar las opciones **Transferir** o **Ajustar**, ejecuta el bloque actualizado de `supabase-schema.sql` en el SQL Editor de Supabase para permitir esos dos tipos de movimiento en una tabla ya creada.
 
 ## Deploy en Vercel
 

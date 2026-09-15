@@ -1,6 +1,8 @@
 import * as XLSX from 'xlsx';
+import { ADJUSTMENT_TYPE, TRANSFER_TYPE } from './financeFeatures';
 
 const REQUIRED_COLUMNS = ['Monto', 'Tipo', 'Categoria', 'Fecha', 'Descripcion'];
+const VALID_TYPES = ['Ingreso', 'Egreso', TRANSFER_TYPE, ADJUSTMENT_TYPE];
 
 function normalizeHeader(value) {
   return String(value ?? '')
@@ -63,7 +65,7 @@ export async function readTransactionsFromExcel(file) {
     const paymentMethod = String(row[headerMap['Metodo de pago']] ?? row[headerMap.Metodo] ?? 'Otro').trim() || 'Otro';
 
     if (!Number.isFinite(amount) || amount <= 0) errors.push(`Fila ${index + 2}: monto invalido.`);
-    if (!['Ingreso', 'Egreso'].includes(type)) errors.push(`Fila ${index + 2}: tipo debe ser Ingreso o Egreso.`);
+    if (!VALID_TYPES.includes(type)) errors.push(`Fila ${index + 2}: tipo debe ser Ingreso, Egreso, ${TRANSFER_TYPE} o ${ADJUSTMENT_TYPE}.`);
     if (!category) errors.push(`Fila ${index + 2}: categoria requerida.`);
     if (!date) errors.push(`Fila ${index + 2}: fecha requerida.`);
 

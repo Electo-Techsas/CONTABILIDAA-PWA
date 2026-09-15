@@ -1,19 +1,30 @@
-import { AlertTriangle, BellRing, Plus, Tag, Trash2, User } from 'lucide-react';
+import { AlertTriangle, BellRing, CircleDollarSign, Plus, Tag, Trash2, User } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { SUPPORTED_CURRENCIES, getCurrency, getCurrencyStep, normalizeAmount } from '../lib/currency';
+import CollapsibleSection from './CollapsibleSection';
 
 export default function Settings({
   alertSettings,
   onAlertSettingsChange,
+  accountLimits = {},
+  onAccountLimitsChange,
   categories,
   onAddCategory,
   onRemoveCategory,
-  onClearAll
+  onClearAll,
+  currency,
+  onCurrencyChange,
+  paymentMethods,
+  onPaymentMethodsChange,
+  usedPaymentMethods = []
 }) {
   const { user } = useAuth();
   const [clearing, setClearing] = useState(false);
   const [message, setMessage] = useState('');
   const [categoryName, setCategoryName] = useState('');
+  const [accountName, setAccountName] = useState('');
+  const currencyInfo = getCurrency(currency);
 
   const handleClearAll = async () => {
     const confirmFirst = window.confirm('Seguro? Esto borrara TODO tu historial de transacciones de Supabase de forma irreversible.');
@@ -42,10 +53,33 @@ export default function Settings({
     });
   };
 
+  const updateAccountLimit = (method, value) => {
+    onAccountLimitsChange({
+      ...accountLimits,
+      [method]: normalizeAmount(value, currency)
+    });
+  };
+
   const handleAddCategory = (event) => {
     event.preventDefault();
     onAddCategory(categoryName);
     setCategoryName('');
+  };
+
+  const addAccount = (event) => {
+    event.preventDefault();
+    const account = accountName.trim();
+    if (!account || paymentMethods.some((method) => method.toLocaleLowerCase() === account.toLocaleLowerCase())) return;
+    onPaymentMethodsChange([...paymentMethods, account]);
+    setAccountName('');
+  };
+
+  const removeAccount = (account) => {
+    if (paymentMethods.length === 1 || usedPaymentMethods.includes(account)) return;
+    onPaymentMethodsChange(paymentMethods.filter((method) => method !== account));
+    const nextLimits = { ...accountLimits };
+    delete nextLimits[account];
+    onAccountLimitsChange(nextLimits);
   };
 
   return (
@@ -66,25 +100,62 @@ export default function Settings({
         </div>
       </article>
 
-      <article className="glass-premium-card rounded-[28px] p-5">
-        <div className="mb-4 flex items-center gap-4">
-          <div className="grid h-10 w-10 place-items-center rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400">
-            <BellRing size={20} />
-          </div>
-          <div>
-            <h2 className="text-base font-semibold text-ink dark:text-white">Alertas de gasto</h2>
-            <p className="text-sm text-muted dark:text-slate-400">Reglas para resumenes, comparaciones y cierres de mes</p>
-          </div>
-        </div>
+      <CollapsibleSection id="settings-currency" icon={CircleDollarSign} title="Moneda de trabajo" subtitle="Se aplica a montos, presupuestos, metas y cálculos nuevos.">
+        <select value={currency} onChange={(event) => onCurrencyChange(event.target.value)} className="input appearance-none">
+          {Object.values(SUPPORTED_CURRENCIES).map((option) => <option key={option.code} value={option.code}>{option.label}</option>)}
+        </select>
+        <p className="mt-3 text-xs text-muted dark:text-slate-400">
+          {currencyInfo.code === 'COP'
+            ? 'COP opera en pesos enteros; no se admitirán fracciones al guardar movimientos nuevos.'
+            : `${currencyInfo.code} opera con ${currencyInfo.minorUnit}; los importes se redondean a dos decimales.`}
+        </p>
+      </CollapsibleSection>
+
+      <CollapsibleSection id="settings-account-alerts" icon={AlertTriangle} title="Alertas por cuenta" subtitle="Saldo mínimo para efectivo, Nequi y demás métodos">
 
         <div className="grid gap-4 md:grid-cols-2">
-          <SettingField label="Presupuesto mensual COP">
+          {paymentMethods.map((method) => (
+            <SettingField key={method} label={`${method} mínimo (${currencyInfo.code})`}>
+              <input
+                min="0"
+                step={getCurrencyStep(currency)}
+                type="number"
+                value={accountLimits[method] || 0}
+                onChange={(event) => updateAccountLimit(method, event.target.value)}
+                className="input"
+              />
+            </SettingField>
+          ))}
+        </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection id="settings-accounts" icon={CircleDollarSign} title="Cuentas" subtitle="Elige qué cuentas aparecen en tu saldo">
+        <form onSubmit={addAccount} className="grid gap-2 sm:grid-cols-[1fr_auto]">
+          <input value={accountName} onChange={(event) => setAccountName(event.target.value)} placeholder="Nueva cuenta: Bancolombia, PayPal..." className="input" />
+          <button type="submit" className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-teal-600 px-4 text-sm font-semibold text-white"><Plus size={16} />Agregar</button>
+        </form>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          {paymentMethods.map((method) => {
+            const inUse = usedPaymentMethods.includes(method);
+            return <div key={method} className="flex items-center justify-between gap-3 rounded-2xl bg-white/25 px-3 py-2 dark:bg-slate-950/20">
+              <span className="truncate text-sm font-medium text-ink dark:text-white">{method}</span>
+              <button type="button" disabled={inUse || paymentMethods.length === 1} onClick={() => removeAccount(method)} title={inUse ? 'No se puede eliminar porque tiene movimientos' : 'Eliminar cuenta'} className="grid h-9 w-9 place-items-center rounded-xl text-negative disabled:cursor-not-allowed disabled:opacity-35"><Trash2 size={16} /></button>
+            </div>;
+          })}
+        </div>
+        <p className="mt-3 text-xs text-muted dark:text-slate-400">Una cuenta con movimientos no se puede eliminar para conservar el historial.</p>
+      </CollapsibleSection>
+
+      <CollapsibleSection id="settings-spending-alerts" icon={BellRing} title="Alertas de gasto" subtitle="Reglas para resúmenes, comparaciones y cierres de mes">
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <SettingField label={`Presupuesto mensual (${currencyInfo.code})`}>
             <input
               min="0"
-              step="1000"
+              step={getCurrencyStep(currency)}
               type="number"
               value={alertSettings.monthlyBudget}
-              onChange={(event) => updateAlert('monthlyBudget', Number(event.target.value))}
+              onChange={(event) => updateAlert('monthlyBudget', normalizeAmount(event.target.value, currency))}
               className="input"
             />
           </SettingField>
@@ -124,18 +195,9 @@ export default function Settings({
             />
           </label>
         </div>
-      </article>
+      </CollapsibleSection>
 
-      <article className="glass-premium-card rounded-[28px] p-5">
-        <div className="mb-4 flex items-center gap-4">
-          <div className="grid h-10 w-10 place-items-center rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-300">
-            <Tag size={20} />
-          </div>
-          <div>
-            <h2 className="text-base font-semibold text-ink dark:text-white">Gestion de Categorias</h2>
-            <p className="text-sm text-muted dark:text-slate-400">Administra tus etiquetas de gastos e ingresos</p>
-          </div>
-        </div>
+      <CollapsibleSection id="settings-categories" icon={Tag} title="Gestión de categorías" subtitle="Administra tus etiquetas de gastos e ingresos">
         <form onSubmit={handleAddCategory} className="grid gap-3 sm:grid-cols-[1fr_auto]">
           <input
             value={categoryName}
@@ -170,7 +232,7 @@ export default function Settings({
             </div>
           ))}
         </div>
-      </article>
+      </CollapsibleSection>
 
       <article className="glass-premium-card rounded-[28px] border-negative/20 p-5">
         <div className="mb-4 flex items-center gap-4">

@@ -4,6 +4,7 @@ export const DEFAULT_ALERT_SETTINGS = {
   monthOverMonthIncreasePercent: 20,
   alertNegativeBalance: true
 };
+import { addAmounts, normalizeAmount } from './currency';
 
 const monthFormatter = new Intl.DateTimeFormat('es-CO', {
   month: 'long',
@@ -20,13 +21,13 @@ export function formatMonthLabel(month) {
   return monthFormatter.format(new Date(year, monthNumber - 1, 1));
 }
 
-export function buildMonthlyAccounting(transactions, now = new Date()) {
+export function buildMonthlyAccounting(transactions, now = new Date(), currency) {
   const currentMonth = getCurrentMonthKey(now);
   const grouped = new Map();
 
   transactions.forEach((item) => {
     const month = item.date?.slice(0, 7) || 'Sin fecha';
-    const amount = Number(item.amount) || 0;
+    const amount = normalizeAmount(item.amount, currency);
     const record = grouped.get(month) || {
       month,
       label: formatMonthLabel(month),
@@ -40,15 +41,15 @@ export function buildMonthlyAccounting(transactions, now = new Date()) {
     record.transactionCount += 1;
 
     if (item.type === 'Ingreso') {
-      record.income += amount;
+      record.income = addAmounts([record.income, amount], currency);
     }
 
     if (item.type === 'Egreso') {
-      record.expense += amount;
-      record.categories.set(item.category, (record.categories.get(item.category) || 0) + amount);
+      record.expense = addAmounts([record.expense, amount], currency);
+      record.categories.set(item.category, addAmounts([record.categories.get(item.category) || 0, amount], currency));
     }
 
-    record.net = record.income - record.expense;
+    record.net = addAmounts([record.income, -record.expense], currency);
     grouped.set(month, record);
   });
 
@@ -57,9 +58,9 @@ export function buildMonthlyAccounting(transactions, now = new Date()) {
     .map((record, index, list) => {
       const topCategoryEntry = Array.from(record.categories.entries()).sort((a, b) => b[1] - a[1])[0];
       const previous = list[index - 1];
-      const expenseDelta = previous ? record.expense - previous.expense : 0;
+      const expenseDelta = previous ? addAmounts([record.expense, -previous.expense], currency) : 0;
       const expenseDeltaPercent = previous?.expense ? (expenseDelta / previous.expense) * 100 : 0;
-      const netDelta = previous ? record.net - previous.net : 0;
+      const netDelta = previous ? addAmounts([record.net, -previous.net], currency) : 0;
 
       return {
         ...record,

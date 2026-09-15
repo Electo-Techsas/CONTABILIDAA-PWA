@@ -1,13 +1,14 @@
 import { Save, X } from 'lucide-react';
 import { useState } from 'react';
 import { emptyTransaction, PAYMENT_METHODS, TRANSACTION_TYPES } from '../lib/schema';
+import { getCurrencyStep } from '../lib/currency';
 
-export default function TransactionForm({ transaction, categories, onSubmit, onClose }) {
+export default function TransactionForm({ transaction, categories, onSubmit, onClose, currency, paymentMethods = PAYMENT_METHODS }) {
   const [values, setValues] = useState(() => {
     const initial = transaction || emptyTransaction;
     return {
       ...initial,
-      paymentMethod: initial.paymentMethod || PAYMENT_METHODS[0]
+      paymentMethod: initial.paymentMethod || paymentMethods[0]
     };
   });
   const [customCategory, setCustomCategory] = useState('');
@@ -26,7 +27,7 @@ export default function TransactionForm({ transaction, categories, onSubmit, onC
       await onSubmit({
         ...values,
         category,
-        paymentMethod: values.paymentMethod || PAYMENT_METHODS[0]
+        paymentMethod: values.paymentMethod || paymentMethods[0]
       });
     } catch (submitError) {
       setError(submitError.message || 'No se pudo guardar la transaccion.');
@@ -68,11 +69,11 @@ export default function TransactionForm({ transaction, categories, onSubmit, onC
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Monto">
+            <Field label={`Monto (${currency})`}>
               <input
                 required
-                min="1"
-                step="0.01"
+                min={getCurrencyStep(currency)}
+                step={getCurrencyStep(currency)}
                 type="number"
                 value={values.amount}
                 onChange={(event) => update('amount', event.target.value)}
@@ -125,7 +126,7 @@ export default function TransactionForm({ transaction, categories, onSubmit, onC
                 onChange={(event) => update('paymentMethod', event.target.value)}
                 className="input appearance-none"
               >
-                {PAYMENT_METHODS.map((method) => <option key={method} className="bg-white dark:bg-slate-800">{method}</option>)}
+                {paymentMethods.map((method) => <option key={method} className="bg-white dark:bg-slate-800">{method}</option>)}
               </select>
             </Field>
 

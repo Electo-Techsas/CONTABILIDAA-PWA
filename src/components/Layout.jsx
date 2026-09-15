@@ -2,6 +2,7 @@ import {
   BarChart3,
   FileSpreadsheet,
   Home,
+  PiggyBank,
   ReceiptText,
   Settings,
   Sun,
@@ -13,6 +14,7 @@ import { useState, useEffect } from 'react';
 const items = [
   { key: 'dashboard', label: 'Inicio', icon: Home },
   { key: 'charts', label: 'Gráficos', icon: BarChart3 },
+  { key: 'planning', label: 'Plan', icon: PiggyBank },
   { key: 'history', label: 'Historial', icon: ReceiptText },
   { key: 'excel', label: 'Excel', icon: FileSpreadsheet },
   { key: 'settings', label: 'Ajustes', icon: Settings }
@@ -151,7 +153,7 @@ export default function Layout({
 
       {/* Menú móvil */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 w-full max-w-[100vw] overflow-hidden border-t border-white/30 dark:border-white/10 liquid-navbar px-2 py-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] lg:hidden">
-        <div className="mx-auto grid w-full max-w-md grid-cols-5 gap-1">
+        <div className="mx-auto grid w-full max-w-lg grid-cols-6 gap-1">
           {items.map((item) => {
             const Icon = item.icon;
             const isActive = item.key === active;
@@ -161,14 +163,14 @@ export default function Layout({
                 key={item.key}
                 type="button"
                 onClick={() => setActive(item.key)}
-                className={`grid min-h-14 place-items-center rounded-2xl text-[11px] font-medium transition-all duration-300 ${
+                className={`grid min-h-14 place-items-center rounded-2xl text-[10px] font-medium transition-all duration-300 sm:text-[11px] ${
                   isActive
                     ? 'bg-primary/10 text-primary dark:bg-teal-500/20 dark:text-teal-400 border border-teal-500/20'
                     : 'text-muted dark:text-zinc-400 hover:bg-white/30 dark:hover:bg-white/10'
                 }`}
               >
-                <div className="flex flex-col items-center gap-1">
-                  <Icon size={20} />
+                <div className="flex min-w-0 flex-col items-center gap-1">
+                  <Icon size={19} />
                   <span>{item.label}</span>
                 </div>
               </button>

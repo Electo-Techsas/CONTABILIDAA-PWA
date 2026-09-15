@@ -1,4 +1,13 @@
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, CalendarCheck, TrendingUp, Wallet } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowDownRight,
+  ArrowLeftRight,
+  ArrowUpRight,
+  CalendarCheck,
+  SlidersHorizontal,
+  TrendingUp,
+  Wallet
+} from 'lucide-react';
 import {
   Bar,
   BarChart,
@@ -12,76 +21,12 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
+import { buildAccountBalances, isRealExpense, isRealIncome, sumAccountBalances } from '../lib/financeFeatures';
 import { buildMonthlyAccounting, buildSpendingAlerts, DEFAULT_ALERT_SETTINGS } from '../lib/monthlyAccounting';
+import { addAmounts, formatMoney } from '../lib/currency';
+import CollapsibleSection from './CollapsibleSection';
 
-const money = new Intl.NumberFormat('es-CO', {
-  style: 'currency',
-  currency: 'COP',
-  maximumFractionDigits: 0
-});
-
-function monthKey(date) {
-  return date?.slice(0, 7) || 'Sin fecha';
-}
-
-function buildMonthlyData(transactions) {
-  const map = new Map();
-  transactions.forEach((item) => {
-    const key = monthKey(item.date);
-    const current = map.get(key) || { month: key, ingresos: 0, egresos: 0 };
-    if (item.type === 'Ingreso') current.ingresos += Number(item.amount);
-    if (item.type === 'Egreso') current.egresos += Number(item.amount);
-    map.set(key, current);
-  });
-  return Array.from(map.values()).sort((a, b) => a.month.localeCompare(b.month));
-}
-
-function buildCategoryData(transactions) {
-  const map = new Map();
-  transactions
-    .filter((item) => item.type === 'Egreso')
-    .forEach((item) => {
-      map.set(item.category, (map.get(item.category) || 0) + Number(item.amount));
-    });
-  return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
-}
-
-function buildPaymentMethodData(allTransactions) {
-  const map = new Map();
-  allTransactions.forEach((item) => {
-    const method = item.paymentMethod || 'Otro';
-    const current = map.get(method) || 0;
-    if (item.type === 'Ingreso') {
-      map.set(method, current + Number(item.amount));
-    } else if (item.type === 'Egreso') {
-      map.set(method, current - Number(item.amount));
-    }
-  });
-  return Array.from(map.entries()).map(([method, balance]) => ({ method, balance }));
-}
-
-export default function Dashboard({
-  transactions,
-  allTransactions,
-  loading,
-  onlyCharts = false,
-  alertSettings = DEFAULT_ALERT_SETTINGS
-}) {
-  const tForAbsoluteMetrics = allTransactions || transactions;
-  
-  const realIncome = tForAbsoluteMetrics.filter((item) => item.type === 'Ingreso').reduce((sum, item) => sum + Number(item.amount), 0);
-  const realExpense = tForAbsoluteMetrics.filter((item) => item.type === 'Egreso').reduce((sum, item) => sum + Number(item.amount), 0);
-  const balance = realIncome - realExpense;
-
-  const income = transactions.filter((item) => item.type === 'Ingreso').reduce((sum, item) => sum + Number(item.amount), 0);
-  const expense = transactions.filter((item) => item.type === 'Egreso').reduce((sum, item) => sum + Number(item.amount), 0);
-  
-  const monthly = buildMonthlyData(transactions);
-  const categories = buildCategoryData(transactions);
-  const paymentMethodsData = buildPaymentMethodData(tForAbsoluteMetrics);
-  const accounting = buildMonthlyAccounting(tForAbsoluteMetrics);
-  const alerts = buildSpendingAlerts(accounting, alertSettings);
-  const colors = [
+const colors = [
   '#14b8a6',
   '#3b82f6',
   '#f97316',
@@ -92,272 +37,184 @@ export default function Dashboard({
   '#ec4899'
 ];
 
-  // Si estamos en la pestaña de gráficos puros, saltamos las tarjetas de métricas
+function monthKey(date) {
+  return date?.slice(0, 7) || 'Sin fecha';
+}
+
+function buildMonthlyData(transactions, currency) {
+  const map = new Map();
+
+  transactions.forEach((item) => {
+    if (!isRealIncome(item) && !isRealExpense(item)) return;
+
+    const key = monthKey(item.date);
+    const current = map.get(key) || { month: key, ingresos: 0, egresos: 0 };
+    if (isRealIncome(item)) current.ingresos = addAmounts([current.ingresos, item.amount], currency);
+    if (isRealExpense(item)) current.egresos = addAmounts([current.egresos, item.amount], currency);
+    map.set(key, current);
+  });
+
+  return Array.from(map.values()).sort((a, b) => a.month.localeCompare(b.month));
+}
+
+function buildCategoryData(transactions, currency) {
+  const map = new Map();
+
+  transactions
+    .filter((item) => isRealExpense(item))
+    .forEach((item) => {
+      map.set(item.category, addAmounts([map.get(item.category) || 0, item.amount], currency));
+    });
+
+  return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
+}
+
+export default function Dashboard({
+  transactions,
+  allTransactions,
+  loading,
+  onlyCharts = false,
+  alertSettings = DEFAULT_ALERT_SETTINGS,
+  accountLimits = {},
+  onTransfer,
+  onAdjust,
+  currency,
+  paymentMethods
+}) {
+  const tForAbsoluteMetrics = allTransactions || transactions;
+  const money = (value) => formatMoney(value, currency);
+  const balance = sumAccountBalances(tForAbsoluteMetrics, currency, paymentMethods);
+  const income = addAmounts(transactions.filter((item) => isRealIncome(item)).map((item) => item.amount), currency);
+  const expense = addAmounts(transactions.filter((item) => isRealExpense(item)).map((item) => item.amount), currency);
+  const monthly = buildMonthlyData(transactions, currency);
+  const chartCategories = buildCategoryData(transactions, currency);
+  const paymentMethodsData = buildAccountBalances(tForAbsoluteMetrics, currency, paymentMethods);
+  const accounting = buildMonthlyAccounting(tForAbsoluteMetrics, new Date(), currency);
+  const alerts = buildSpendingAlerts(accounting, alertSettings);
+
   if (onlyCharts) {
-    return (
-      <div className="grid gap-4 xl:grid-cols-[1.35fr_0.9fr]">
-        <article className="rounded-3xl glass-premium-card p-5">
-          <div className="mb-4">
-            <h2 className="text-base font-semibold text-ink dark:text-white">Ingresos vs egresos</h2>
-            <p className="text-sm text-muted dark:text-slate-400">Comparativo mensual segun filtros activos</p>
-          </div>
-          <div className="h-72 chart-glass">
-            {loading ? (
-              <div className="grid h-full place-items-center text-sm text-muted dark:text-slate-400">Cargando datos...</div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-  data={monthly}
-  margin={{
-    top: 10,
-    right: 20,
-    left: 10,
-    bottom: 10
-  }}
->
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" strokeOpacity={0.15} />
-                  <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{
-  fill: '#94a3b8',
-  fontSize: 12
-}} />
-                  <YAxis tickFormatter={(value) => `$${Math.round(value / 1000)}k`} tickLine={false} axisLine={false} tick={{
-  fill: '#94a3b8',
-  fontSize: 12
-}} />
-                  <Tooltip
-  formatter={(value) => money.format(value)}
-  contentStyle={{
-    background: 'rgba(255,255,255,0.08)',
-    backdropFilter: 'blur(30px)',
-    WebkitBackdropFilter: 'blur(30px)',
-    border: '1px solid rgba(255,255,255,0.15)',
-    borderRadius: '20px',
-    color: '#ffffff',
-    boxShadow: '0 8px 32px rgba(0,0,0,.18)'
-  }}
-/>
-                  <Legend
-  wrapperStyle={{
-    color: '#94a3b8',
-    fontSize: '12px'
-  }}
-/>
-                  <Bar
-  dataKey="ingresos"
-  fill="rgba(20,184,166,.85)"
-  radius={[18, 18, 0, 0]}
-/>
-
-<Bar
-  dataKey="egresos"
-  fill="rgba(249,115,22,.85)"
-  radius={[18, 18, 0, 0]}
-/>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </article>
-
-        <article className="rounded-3xl glass-premium-card p-5">
-          <div className="mb-4">
-            <h2 className="text-base font-semibold text-ink dark:text-white">Egresos por categoria</h2>
-            <p className="text-sm text-muted dark:text-slate-400">Distribucion de gastos</p>
-          </div>
-          <div className="h-72 chart-glass">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-  data={categories}
-  dataKey="value"
-  nameKey="name"
-  innerRadius={70}
-  outerRadius={105}
-  paddingAngle={6}
-  cornerRadius={12}
->
-                  {categories.map((entry, index) => (
-                    <Cell key={entry.name} fill={colors[index % colors.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-  formatter={(value) => money.format(value)}
-  contentStyle={{
-    background: 'rgba(255,255,255,0.08)',
-    backdropFilter: 'blur(30px)',
-    WebkitBackdropFilter: 'blur(30px)',
-    border: '1px solid rgba(255,255,255,0.15)',
-    borderRadius: '20px',
-    color: '#ffffff',
-    boxShadow: '0 8px 32px rgba(0,0,0,.18)'
-  }}
-/>
-                <Legend
-  wrapperStyle={{
-    color: '#94a3b8',
-    fontSize: '12px'
-  }}
-/>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </article>
-      </div>
-    );
+    return <ChartsGrid monthly={monthly} categories={chartCategories} loading={loading} money={money} />;
   }
 
   return (
     <section id="dashboard" className="space-y-5">
-      {/* Cambiamos el contenedor principal a una cuadrícula de 2 columnas */}
-      <div className="grid gap-3 grid-cols-2">
-        {/* Envolvemos 'Saldo actual' en un div que ocupa las 2 columnas (ancho completo) */}
+      <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2">
-          <Metric title="Saldo actual" value={money.format(balance)} icon={Wallet} tone="primary" />
+          <Metric title="Saldo actual" value={money(balance)} icon={Wallet} tone="primary" />
         </div>
-        {/* 'Ingresos' y 'Egresos' ocuparán automáticamente 1 columna cada uno, quedando lado a lado */}
-        <Metric title="Ingresos" value={money.format(income)} icon={ArrowUpRight} tone="positive" />
-        <Metric title="Egresos" value={money.format(expense)} icon={ArrowDownRight} tone="negative" />
+        <Metric title="Ingresos" value={money(income)} icon={ArrowUpRight} tone="positive" />
+        <Metric title="Egresos" value={money(expense)} icon={ArrowDownRight} tone="negative" />
       </div>
 
-      {/* Sección Solucionada: ¿Dónde está mi dinero? */}
-      <article className="glass-premium-card rounded-[28px] p-5">
-        <div className="mb-4">
-          <h2 className="text-base font-semibold text-ink dark:text-white">¿Dónde está mi dinero?</h2>
-          <p className="text-sm text-muted dark:text-slate-400">Distribución del saldo real acumulado por método de pago</p>
-        </div>
-        <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-          {paymentMethodsData.map(({ method, balance: mBalance }) => (
-            <div
-  key={method}
-  className="rounded-2xl glass-premium-card p-4"
->
-              <div className="flex items-center gap-2 mb-1">
-                <Wallet size={14} className="text-teal-600 dark:text-teal-400" />
-                <span className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400">{method}</span>
+      <CollapsibleSection
+        id="dashboard-accounts"
+        icon={Wallet}
+        title="Dónde está mi dinero"
+        subtitle="Saldo acumulado por cuenta"
+        actions={<>
+            <button
+              type="button"
+              onClick={() => onTransfer?.()}
+              className="inline-flex h-9 items-center justify-center gap-1 rounded-xl bg-teal-600 px-2.5 text-[11px] font-semibold text-white shadow-md shadow-teal-600/20 transition-all hover:bg-teal-500 sm:h-10 sm:gap-2 sm:rounded-2xl sm:px-3 sm:text-xs"
+            >
+              <ArrowLeftRight size={15} />
+              Transferir
+            </button>
+            <button
+              type="button"
+              onClick={() => onAdjust?.()}
+              className="inline-flex h-9 items-center justify-center gap-1 rounded-xl bg-white/30 px-2.5 text-[11px] font-semibold text-ink transition-all hover:bg-white/50 dark:bg-white/10 dark:text-white dark:hover:bg-white/15 sm:h-10 sm:gap-2 sm:rounded-2xl sm:px-3 sm:text-xs"
+            >
+              <SlidersHorizontal size={15} />
+              Ajustar
+            </button>
+        </>}
+      >
+
+        <div className="divide-y divide-white/20 overflow-hidden rounded-2xl bg-white/20 dark:divide-white/10 dark:bg-slate-950/20">
+          {paymentMethodsData.map(({ method, balance: methodBalance }) => {
+            const limit = Number(accountLimits[method] || 0);
+            const isLow = limit > 0 && methodBalance <= limit;
+
+            return (
+              <div key={method} className="flex min-h-16 items-center justify-between gap-3 px-4 py-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400">
+                    <Wallet size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-ink dark:text-white">{method}</p>
+                    {isLow && <p className="text-xs font-semibold text-orange-600 dark:text-orange-300">Saldo bajo</p>}
+                  </div>
+                </div>
+                <p className={`shrink-0 text-sm font-bold ${methodBalance >= 0 ? 'text-ink dark:text-white' : 'text-orange-600 dark:text-orange-400'}`}>
+                  {money(methodBalance)}
+                </p>
               </div>
-              <p className={`text-lg font-bold ${mBalance >= 0 ? 'text-ink dark:text-white' : 'text-orange-600 dark:text-orange-400'}`}>
-                {money.format(mBalance)}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </div>
-      </article>
+      </CollapsibleSection>
 
-      <MonthlyAccountingPanel accounting={accounting} alerts={alerts} />
-
-      <div className="grid gap-4 xl:grid-cols-[1.35fr_0.9fr]">
-        <article className="rounded-3xl glass-premium-card p-4">
-  <div className="mb-4">
-    <h2 className="text-base font-semibold text-ink dark:text-white">Ingresos vs egresos</h2>
-            <p className="text-sm text-muted dark:text-slate-400">Comparativo mensual segun filtros activos</p>
-          </div>
-          <div className="h-72 chart-glass">
-            {loading ? (
-              <div className="grid h-full place-items-center text-sm text-muted dark:text-slate-400">Cargando datos...</div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-  data={monthly}
-  margin={{
-    top: 10,
-    right: 20,
-    left: 10,
-    bottom: 10
-  }}
->
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" strokeOpacity={0.15} />
-                  <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{
-  fill: '#94a3b8',
-  fontSize: 12
-}} />
-                  <YAxis tickFormatter={(value) => `$${Math.round(value / 1000)}k`} tickLine={false} axisLine={false} tick={{
-  fill: '#94a3b8',
-  fontSize: 12
-}} />
-                  <Tooltip
-  formatter={(value) => money.format(value)}
-  contentStyle={{
-    background: 'rgba(255,255,255,0.08)',
-    backdropFilter: 'blur(30px)',
-    WebkitBackdropFilter: 'blur(30px)',
-    border: '1px solid rgba(255,255,255,0.15)',
-    borderRadius: '20px',
-    color: '#ffffff',
-    boxShadow: '0 8px 32px rgba(0,0,0,.18)'
-  }}
-/>
-                  <Legend
-  wrapperStyle={{
-    color: '#94a3b8',
-    fontSize: '12px'
-  }}
-/>
-                  <Bar
-  dataKey="ingresos"
-  fill="rgba(20,184,166,.85)"
-  radius={[18, 18, 0, 0]}
-/>
-
-<Bar
-  dataKey="egresos"
-  fill="rgba(249,115,22,.85)"
-  radius={[18, 18, 0, 0]}
-/>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </article>
-
-        <article className="rounded-3xl glass-premium-card p-4">
-  <div className="mb-4">
-    <h2 className="text-base font-semibold text-ink dark:text-white">Egresos por categoria</h2>
-            <p className="text-sm text-muted dark:text-slate-400">Distribucion de gastos</p>
-          </div>
-          <div className="h-72 chart-glass">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-  data={categories}
-  dataKey="value"
-  nameKey="name"
-  innerRadius={70}
-  outerRadius={105}
-  paddingAngle={6}
-  cornerRadius={12}
->
-                  {categories.map((entry, index) => (
-                    <Cell key={entry.name} fill={colors[index % colors.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-  formatter={(value) => money.format(value)}
-  contentStyle={{
-    background: 'rgba(255,255,255,0.08)',
-    backdropFilter: 'blur(30px)',
-    WebkitBackdropFilter: 'blur(30px)',
-    border: '1px solid rgba(255,255,255,0.15)',
-    borderRadius: '20px',
-    color: '#ffffff',
-    boxShadow: '0 8px 32px rgba(0,0,0,.18)'
-  }}
-/>
-                <Legend
-  wrapperStyle={{
-    color: '#94a3b8',
-    fontSize: '12px'
-  }}
-/>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </article>
-      </div>
+      <MonthlyAccountingPanel accounting={accounting} alerts={alerts} money={money} />
+      <ChartsGrid monthly={monthly} categories={chartCategories} loading={loading} money={money} compact />
     </section>
   );
 }
 
-function MonthlyAccountingPanel({ accounting, alerts }) {
+function ChartsGrid({ monthly, categories, loading, money }) {
+  return (
+    <div className="grid gap-4 xl:grid-cols-[1.35fr_0.9fr]">
+      <CollapsibleSection id="charts-income-expense" title="Ingresos vs egresos" subtitle="Comparativo mensual según filtros activos" className="rounded-3xl p-4 sm:p-5">
+        <div className="h-72 chart-glass">
+          {loading ? (
+            <div className="grid h-full place-items-center text-sm text-muted dark:text-slate-400">Cargando datos...</div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={monthly} margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" strokeOpacity={0.15} />
+                <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                <YAxis tickFormatter={(value) => `$${Math.round(value / 1000)}k`} tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                <Tooltip formatter={(value) => money(value)} contentStyle={tooltipStyle} />
+                <Legend wrapperStyle={{ color: '#94a3b8', fontSize: '12px' }} />
+                <Bar dataKey="ingresos" fill="rgba(20,184,166,.85)" radius={[18, 18, 0, 0]} />
+                <Bar dataKey="egresos" fill="rgba(249,115,22,.85)" radius={[18, 18, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection id="charts-categories" title="Egresos por categoría" subtitle="Distribución de gastos" className="rounded-3xl p-4 sm:p-5">
+        <div className="h-72 chart-glass">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={categories} dataKey="value" nameKey="name" innerRadius={70} outerRadius={105} paddingAngle={6} cornerRadius={12}>
+                {categories.map((entry, index) => (
+                  <Cell key={entry.name} fill={colors[index % colors.length]} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(value) => money(value)} contentStyle={tooltipStyle} />
+              <Legend wrapperStyle={{ color: '#94a3b8', fontSize: '12px' }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </CollapsibleSection>
+    </div>
+  );
+}
+
+const tooltipStyle = {
+  background: 'rgba(255,255,255,0.08)',
+  backdropFilter: 'blur(30px)',
+  WebkitBackdropFilter: 'blur(30px)',
+  border: '1px solid rgba(255,255,255,0.15)',
+  borderRadius: '20px',
+  color: '#ffffff',
+  boxShadow: '0 8px 32px rgba(0,0,0,.18)'
+};
+
+function MonthlyAccountingPanel({ accounting, alerts, money }) {
   const active = accounting.activeMonth;
   const recentClosed = accounting.closedMonths.slice(-3).reverse();
 
@@ -388,9 +245,9 @@ function MonthlyAccountingPanel({ accounting, alerts }) {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
-          <MiniStat label="Ingresos" value={money.format(active.income)} />
-          <MiniStat label="Egresos" value={money.format(active.expense)} tone="negative" />
-          <MiniStat label="Resultado" value={money.format(active.net)} tone={active.net >= 0 ? 'positive' : 'negative'} />
+          <MiniStat label="Ingresos" value={money(active.income)} />
+          <MiniStat label="Egresos" value={money(active.expense)} tone="negative" />
+          <MiniStat label="Resultado" value={money(active.net)} tone={active.net >= 0 ? 'positive' : 'negative'} />
         </div>
 
         <div className="mt-4 rounded-2xl bg-white/25 p-4 dark:bg-slate-950/20">
@@ -399,9 +256,9 @@ function MonthlyAccountingPanel({ accounting, alerts }) {
             Resumen inteligente
           </div>
           <p className="mt-2 text-sm text-muted dark:text-slate-300">
-            El mayor gasto esta en <strong>{active.topCategory}</strong> con {money.format(active.topCategoryAmount)}
+            El mayor gasto esta en <strong>{active.topCategory}</strong> con {money(active.topCategoryAmount)}
             {' '}({Math.round(active.topCategoryPercent)}% de los egresos). Frente al mes anterior, los egresos
-            {' '}{active.expenseDelta >= 0 ? 'subieron' : 'bajaron'} {money.format(Math.abs(active.expenseDelta))}.
+            {' '}{active.expenseDelta >= 0 ? 'subieron' : 'bajaron'} {money(Math.abs(active.expenseDelta))}.
           </p>
         </div>
       </article>
@@ -436,7 +293,7 @@ function MonthlyAccountingPanel({ accounting, alerts }) {
                 <p className="text-xs text-muted dark:text-slate-400">Cerrado automaticamente</p>
               </div>
               <p className={`text-sm font-bold ${month.net >= 0 ? 'text-positive' : 'text-negative'}`}>
-                {money.format(month.net)}
+                {money(month.net)}
               </p>
             </div>
           ))}
@@ -461,29 +318,27 @@ function MiniStat({ label, value, tone }) {
 }
 
 function Metric({ title, value, icon: Icon, tone }) {
-  // Ajustamos dinámicamente los colores y la animación basándonos en el tipo de tarjeta (tone)
   const setup = {
     primary: {
       toneClass: 'text-teal-600 dark:text-teal-400',
       badgeBg: 'bg-teal-500/10 text-teal-600 dark:text-teal-400',
       animClass: 'animate-levitate-slow',
-      extraText: 'Disponible Total ⊕'
+      extraText: 'Disponible total'
     },
     positive: {
       toneClass: 'text-emerald-600 dark:text-emerald-400',
       badgeBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
       animClass: 'animate-levitate-delayed',
-      extraText: '↑ Este Mes (Actual)'
+      extraText: 'Este mes'
     },
     negative: {
       toneClass: 'text-rose-600 dark:text-rose-400',
       badgeBg: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
       animClass: 'animate-levitate-fast',
-      extraText: '↓ Este Mes (Actual)'
+      extraText: 'Este mes'
     }
   }[tone] || { toneClass: '', badgeBg: '', animClass: '', extraText: '' };
 
-  // Obtener hora actual del sistema formateada para el detalle sutil de actualización
   const currentFormattedTime = new Date().toLocaleTimeString('es-CO', {
     hour: '2-digit',
     minute: '2-digit',
@@ -491,35 +346,27 @@ function Metric({ title, value, icon: Icon, tone }) {
   });
 
   return (
-    <article className={`glass-premium-card ${setup.animClass} rounded-[28px] p-6 flex flex-col items-center justify-center transition-all`}>
-      {/* Cabecera de la tarjeta con alineación horizontal para el título y el icono */}
-      <div className="flex items-center justify-between w-full mb-3">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400/80 dark:text-slate-500">
-          {title}
-        </p>
+    <article className={`glass-premium-card ${setup.animClass} flex flex-col items-center justify-center rounded-[28px] p-6 transition-all`}>
+      <div className="mb-3 flex w-full items-center justify-between">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400/80 dark:text-slate-500">{title}</p>
         {Icon && (
-          <div className={`p-2 rounded-2xl ${setup.badgeBg} flex items-center justify-center`}>
+          <div className={`flex items-center justify-center rounded-2xl p-2 ${setup.badgeBg}`}>
             <Icon size={18} />
           </div>
         )}
       </div>
 
-      {/* El Monto Principal - Ajustado a text-3xl para un look más limpio y compacto */}
-      <p className={`break-words text-3xl font-extrabold tracking-tight mb-3 w-full text-center ${
-  tone === 'primary' ? 'text-ink dark:text-white' : setup.toneClass
-}`}>
-  {value}
-</p>
+      <p className={`mb-3 w-full break-words text-center text-3xl font-extrabold tracking-tight ${tone === 'primary' ? 'text-ink dark:text-white' : setup.toneClass}`}>
+        {value}
+      </p>
 
-      {/* El Sub-badge flotante justo debajo del número */}
-      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wide ${setup.badgeBg}`}>
+      <div className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold tracking-wide ${setup.badgeBg}`}>
         <span>{setup.extraText}</span>
       </div>
 
-      {/* Timestamp de actualización sutil en la base (solo para la tarjeta de Saldo Principal) */}
       {tone === 'primary' && (
-        <p className="text-[10px] text-slate-400/60 dark:text-slate-500/60 font-medium mt-3">
-          Updated: Hoy {currentFormattedTime}
+        <p className="mt-3 text-[10px] font-medium text-slate-400/60 dark:text-slate-500/60">
+          Actualizado: Hoy {currentFormattedTime}
         </p>
       )}
     </article>

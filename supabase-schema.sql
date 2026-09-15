@@ -2,7 +2,7 @@ create table if not exists public.transactions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   amount numeric(14,2) not null,
-  type text not null check (type in ('Ingreso', 'Egreso')),
+  type text not null check (type in ('Ingreso', 'Egreso', 'Transferencia', 'Ajuste')),
   category text not null,
   date date not null,
   description text default '',
@@ -12,6 +12,13 @@ create table if not exists public.transactions (
   updated_at timestamptz default now(),
   unique (user_id, import_hash)
 );
+
+-- Ejecuta también este bloque si la tabla ya existía antes de añadir
+-- transferencias internas y ajustes de saldo.
+alter table public.transactions drop constraint if exists transactions_type_check;
+alter table public.transactions
+  add constraint transactions_type_check
+  check (type in ('Ingreso', 'Egreso', 'Transferencia', 'Ajuste'));
 
 alter table public.transactions enable row level security;
 
