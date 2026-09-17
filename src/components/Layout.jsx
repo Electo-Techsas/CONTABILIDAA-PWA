@@ -61,6 +61,9 @@ export default function Layout({
 
       {/* Fondo dinámico */}
       <div className="liquid-ambient fixed inset-0 z-0 pointer-events-none">
+        <span className="ambient-orb ambient-orb-one" />
+        <span className="ambient-orb ambient-orb-two" />
+        <span className="ambient-orb ambient-orb-three" />
       </div>
 
       {/* Sidebar Desktop */}
